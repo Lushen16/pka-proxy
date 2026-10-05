@@ -1,0 +1,10 @@
+CHAVE-PRIVADA*
+*private-key*
+*.backup-*
+*.new-*
+app-config.json
+session.json
+updates.json
+release/
+PKA-Proxy.exe
+*.zip

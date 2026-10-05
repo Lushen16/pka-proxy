@@ -1,33 +1,38 @@
-# PKA Proxy
+# PKAproxy
 
-Aplicativo desktop Windows para configurar SOCKS5 Webshare por aplicativo, comparar IP direto e IP pelo proxy e receber atualizações assinadas.
+**PKA PROXY — conexão sob controle.** Aplicativo Windows para configurar SOCKS5 Webshare, verificar IP de saída e gerenciar regras de roteamento.
 
-## Baixar
+## Instalar
 
-Baixe **PKA-Proxy-Windows.zip** em [Releases](https://github.com/Lushen16/pka-proxy/releases/latest), extraia em uma pasta pessoal e abra **PKA-Proxy.exe**. Requer .NET Framework 4.x (recomendado 4.7.2 ou mais recente). Não usa navegador ou Python.
+Baixe **PKAproxy-Setup.exe** em [Releases](https://github.com/Lushen16/pka-proxy/releases/latest). O instalador coloca PKAproxy.exe em `%APPDATA%\PKAproxy` e cria atalhos na Área de Trabalho e no menu Iniciar. Não precisa de Python ou navegador. Requer .NET Framework 4.7.2 ou superior.
 
-## Roteamento
+A instalação do aplicativo é por usuário. O motor de redirecionamento ProxiFyre / Windows Packet Filter é uma dependência separada com componentes do Windows que exigem instalação administrativa. Esse driver não pode ficar inteiramente no AppData. O instalador PKAproxy não instala nem inclui o motor ou seus drivers. Obtenha-os na [distribuição oficial](https://github.com/wiresock/proxifyre/releases).
 
-Selecione o cliente final .exe que o launcher abre. Os filhos não herdam automaticamente a regra do launcher. A janela Roteamento permite incluir o launcher separadamente ou gerar uma regra Global / Todos os aplicativos, com opções UDP e IPv6.
+## Usar
 
-O aplicativo gera a configuração, mas a interceptação depende de **ProxiFyre + Windows Packet Filter**, instalados separadamente pela [distribuição oficial](https://github.com/wiresock/proxifyre/releases). Aplique a configuração e reinicie o serviço pela interface oficial. Salvar não ativa o serviço. Não há motor/driver próprio incluído.
+1. Selecione o cliente final do jogo, informe host, porta e credenciais Webshare.
+2. Use **Check proxy** para consultar o IP direto e o IP via SOCKS5.
+3. Em **Roteamento**, escolha cliente + launcher opcional ou todos os aplicativos.
+4. Salve a configuração e aplique-a no serviço do ProxiFyre. Salvar no PKAproxy não ativa o serviço.
 
-Global cobre os protocolos selecionados dos aplicativos identificados pelo motor, com o configurador excluído. Não é garantia de todo pacote do sistema: UDP depende do proxy, ICMP não é coberto, DNS e processos sem identificação precisam de verificação, e não há kill switch. Consulte ALTERACOES.md.
+Processos filhos não herdam automaticamente a regra do launcher: selecione explicitamente o cliente final. O modo global cobre os protocolos selecionados de aplicativos identificados pelo motor; não garante todo pacote do sistema. Não há kill switch. UDP, IPv6 e DNS dependem do motor, do proxy e do ambiente. O Check testa somente suas próprias conexões.
 
-## Check
+## Arquivos e atualizações
 
-Consulta HTTPS ao ipify pela conexão direta e por um túnel SOCKS5 autenticado. Exibe os dois IPs. Uma falha no proxy não faz fallback direto. O resultado comprova apenas o teste, não as conexões do jogo/sistema. Uma VPN pode afetar a saída direta.
+O aplicativo e seus dados ficam em `%APPDATA%\PKAproxy`. Os campos da sessão são preservados, com senha protegida pelo Windows (DPAPI). O JSON exportado ao ProxiFyre contém a senha em texto claro. A nova versão importa preferências antigas de `%LOCALAPPDATA%\PkaProxy` quando ainda não existem arquivos equivalentes na pasta nova.
 
-## Atualizações
+O aplicativo consulta este repositório ao abrir e instala novas versões quando você clica em Atualizar agora. Cada atualização verifica assinatura RSA/SHA-256, hash, tamanho e versão antes de substituir o EXE, com backup. A assinatura de atualização é própria do aplicativo; executáveis ainda não possuem Authenticode reconhecido pelo Windows. A versão 1.1.0.0 pode receber esta atualização; para criar a instalação organizada com atalhos, execute o instalador.
 
-A distribuição vem configurada para este repositório e consulta novas versões ao abrir. Em Atualizações, você pode desativar essa consulta. A instalação ocorre ao clicar em Atualizar agora.
+`PKA-Proxy.exe` permanece como nome do arquivo remoto usado pelo atualizador para compatibilidade. O executável instalado se chama **PKAproxy.exe**.
 
-O cliente aceita apenas manifestos com assinatura RSA/SHA-256 da chave pública embutida, verifica o hash/tamanho/versão do EXE, cria backup e reabre. A assinatura da atualização é própria do aplicativo; o EXE ainda não tem assinatura Authenticode reconhecida pelo Windows. Campos são preservados no perfil local, com senha protegida por DPAPI. O JSON exportado para o motor contém a senha em texto claro.
+## Desenvolvimento
 
-## Compilar e publicar
+Os arquivos C# são módulos de interface, configuração, diagnóstico, persistência e atualização. O código na raiz do repositório e a pasta src do pacote têm o mesmo conteúdo.
 
-Execute build.ps1. Neste repositório os módulos .cs estão na raiz; no ZIP estão na pasta src. O script suporta os dois layouts. Aumente a versão em AssemblyInfo.cs antes de publicar uma nova release.
+- **build.ps1**: compila o aplicativo e usa PKAproxy.ico.
+- **build-installer.ps1**: compila o instalador com o aplicativo embutido; suporta Setup.cs/Integrity.cs na raiz ou na pasta installer.
+- **prepare-release.ps1**: cria manifesto e assinatura usando a chave privada externa ao repositório.
 
-Use prepare-release.ps1 com a chave privada guardada fora do repositório, para gerar PKA-Proxy.exe, update.json e update.sig. Publique os três arquivos com a tag exata indicada pelo script (exemplo: v1.1.0.0). Não publique chaves privadas ou credenciais.
+Para publicar, aumente a versão em AssemblyInfo.cs, compile e assine os arquivos. Use a tag exata indicada pelo script. Publique PKA-Proxy.exe, update.json e update.sig, além do instalador. Nunca envie a chave privada ou credenciais para o repositório.
 
-A chave privada não integra este repositório nem os pacotes públicos. Os binários Drover não foram executados, reutilizados ou incluídos. Não foi validado tráfego real do PokeAlliance/Webshare; faça testes na sua VM.
+Compilação, testes de configuração/SOCKS5/assinatura e instalação/reinstalação passaram. O tráfego real do PokeAlliance/Webshare ainda precisa ser validado na VM.

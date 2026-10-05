@@ -11,71 +11,247 @@ using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Authentication;
 using System.Threading.Tasks;
+public class MainForm : Form
+{
+    TextBox clientPathBox=new TextBox(),proxyHostBox=new TextBox(),usernameBox=new TextBox(),passwordBox=new TextBox();
+    NumericUpDown proxyPortBox=new NumericUpDown();
+    RoutingOptions routingOptions=new RoutingOptions();
+    Button checkProxyButton;
+    Label connectionStatusLabel,directIpLabel,proxyIpLabel,routingStatusLabel;
+    Color bg=Color.FromArgb(15,17,23),card=Color.FromArgb(27,30,39),muted=Color.FromArgb(167,173,188),accent=Color.FromArgb(250,190,55);
+    public MainForm()
+    {
+        Text = "PKAproxy";
+        ClientSize = new Size(800, 790);
+        BackColor = bg;
+        ForeColor = Color.White;
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        StartPosition = FormStartPosition.CenterScreen;
+        Font = new Font("Segoe UI", 10);
+        AutoScaleMode = AutoScaleMode.Dpi;
+        var mark = new PictureBox { Left=28, Top=28, Width=58, Height=58, Image=UiTheme.BrandMark(58), SizeMode=PictureBoxSizeMode.Zoom };
+        Controls.Add(mark);
+        AddLabel("PKA", 102, 20, 110, 45, 28, accent);
+        AddLabel("PROXY", 213, 20, 240, 45, 28, Color.White);
+        AddLabel("CONEXÃO SOB CONTROLE", 105, 70, 410, 25, 9, muted);
+        var updates = CreateButton("Atualizações", 590, 30, 182, false);
+        updates.Click += (sender, e) => ShowUpdates(null);
+        Controls.Add(updates);
+        AddLabel("SOCKS5  /  WEBSHARE  /  WINDOWS", 30, 112, 620, 24, 9, muted);
+        Shown += async (sender, e) => { if (Environment.GetCommandLineArgs().Length == 1) await CheckForUpdatesAsync(); };
 
-public class PkaProxy : Form {
- TextBox game=new TextBox(),host=new TextBox(),user=new TextBox(),pass=new TextBox();
- NumericUpDown port=new NumericUpDown();
- RoutingOptions route=new RoutingOptions();
- Button check; Label status,directIp,proxyIp,routeSummary;
- Color bg=Color.FromArgb(17,24,39),card=Color.FromArgb(31,41,55),muted=Color.FromArgb(156,163,175),accent=Color.FromArgb(59,130,246);
- public PkaProxy(){
-  Text="PKA Proxy";ClientSize=new Size(780,730);BackColor=bg;ForeColor=Color.White;FormBorderStyle=FormBorderStyle.FixedDialog;MaximizeBox=false;StartPosition=FormStartPosition.CenterScreen;Font=new Font("Segoe UI",10);AutoScaleMode=AutoScaleMode.Dpi;
-  LabelAt("PKA Proxy",28,22,650,40,24,Color.White);
-  LabelAt("PokeAlliance + Webshare • SOCKS5",30,67,650,24,10,muted);
-  var updates=ActionButton("Atualizações",585,28,167,false);updates.Click+=(o,e)=>OpenUpdates(null);Controls.Add(updates);
-  Shown+=async(o,e)=>{if(Environment.GetCommandLineArgs().Length==1)await CheckStartup();};
-  Panel setup=new Panel{Left=28,Top=112,Width=724,Height=285,BackColor=card};Controls.Add(setup);
-  AddField(setup,"CLIENTE FINAL DO JOGO (.EXE)",game,20);game.Width=395;
-  var choose=UiTheme.PrimaryButton("Escolher",550,36,150);choose.Click+=(o,e)=>{string selected=ExecutablePicker.Select(this);if(selected!=null)game.Text=selected;};setup.Controls.Add(choose);game.Width=505;
+        var setup = new Panel { Left=28, Top=148, Width=744, Height=306, BackColor=card };
+        Controls.Add(setup);
+        setup.Controls.Add(new Label { Text="01   CONFIGURAR CONEXÃO", Left=24, Top=15, Width=690, Height=23, ForeColor=accent, Font=new Font("Segoe UI", 10, FontStyle.Bold) });
+        CreateField(setup, "CLIENTE FINAL DO JOGO", clientPathBox, 44);
+        clientPathBox.Width = 505;
+        var choose = UiTheme.PrimaryButton("Escolher", 568, 60, 152);
+        choose.Click += (sender, e) => { string path = ExecutablePicker.Select(this); if (path != null) clientPathBox.Text = path; };
+        setup.Controls.Add(choose);
+        CreateField(setup, "IP OU HOST DO PROXY", proxyHostBox, 106);
+        proxyHostBox.Width = 505;
+        setup.Controls.Add(new Label { Text="PORTA", Left=568, Top=106, Width=140, ForeColor=muted, Font=new Font("Segoe UI",9) });
+        proxyPortBox.SetBounds(568, 128, 152, 28);
+        proxyPortBox.Minimum=1; proxyPortBox.Maximum=65535; proxyPortBox.Value=1080;
+        setup.Controls.Add(proxyPortBox); ApplyInputStyle(proxyPortBox);
+        CreateField(setup, "USUÁRIO", usernameBox, 168); usernameBox.Width=333;
+        setup.Controls.Add(new Label { Text="SENHA", Left=383, Top=168, Width=335, ForeColor=muted, Font=new Font("Segoe UI",9) });
+        passwordBox.SetBounds(383,190,337,28); passwordBox.UseSystemPasswordChar=true;
+        setup.Controls.Add(passwordBox); ApplyInputStyle(passwordBox);
+        setup.Controls.Add(new Label { Text="Escolha o cliente que o launcher abre. Filhos não herdam a regra.\nInclua o launcher ou configure todos os apps em Roteamento.", Left=24, Top=242, Width=695, Height=45, ForeColor=muted, Font=new Font("Segoe UI",9) });
 
-  AddField(setup,"IP OU HOST DO PROXY",host,85);host.Width=395;
-  var pl=new Label{Text="PORTA",Left=584,Top=85,Width=110,ForeColor=muted,Font=new Font("Segoe UI",9)};setup.Controls.Add(pl);port.SetBounds(584,107,116,28);port.Minimum=1;port.Maximum=65535;port.Value=1080;setup.Controls.Add(port);StyleInput(port);
-  AddField(setup,"USUÁRIO",user,150);user.Width=325;
-  var ul=new Label{Text="SENHA",Left=375,Top=150,Width=300,ForeColor=muted,Font=new Font("Segoe UI",9)};setup.Controls.Add(ul);pass.SetBounds(375,172,325,28);pass.UseSystemPasswordChar=true;setup.Controls.Add(pass);StyleInput(pass);
-  setup.Controls.Add(new Label{Text="Selecione o cliente que o launcher abre. Filhos não herdam a regra.\nPara incluir o launcher ou usar todos os apps, abra Roteamento.",Left=24,Top=217,Width=680,Height=54,ForeColor=muted,Font=new Font("Segoe UI",9)});
-  Panel result=new Panel{Left=28,Top=416,Width=724,Height=146,BackColor=card};Controls.Add(result);
-  status=new Label{Text="Pronto para verificar",Left=24,Top=17,Width=530,Height=26,Font=new Font("Segoe UI",12,FontStyle.Bold)};result.Controls.Add(status);
-  directIp=new Label{Text="Rede direta: —",Left=24,Top=54,Width=490,Height=25};proxyIp=new Label{Text="Via SOCKS5: —",Left=24,Top=82,Width=490,Height=25};result.Controls.Add(directIp);result.Controls.Add(proxyIp);
-  check=ActionButton("Check proxy",554,48,146,true);check.Click+=async(o,e)=>await Check();result.Controls.Add(check);
-  result.Controls.Add(new Label{Text="Consulta HTTPS ao ipify. Verifica este teste, não o tráfego do jogo.",Left=24,Top=115,Width=680,Height=23,ForeColor=muted,Font=new Font("Segoe UI",9)});
-  var save=ActionButton("Salvar configuração",28,582,210,true);save.Click+=(o,e)=>Save();Controls.Add(save);
-  var manager=ActionButton("Abrir motor instalado",252,582,210,false);manager.Click+=(o,e)=>{try{using(var d=new OpenFileDialog{Title="Selecione a interface oficial ProxiFyre instalada",Filter="Executável ProxiFyre|*.exe"})if(d.ShowDialog()==DialogResult.OK)System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(d.FileName){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(d.FileName)});}catch(Exception){MessageBox.Show("Não foi possível abrir o motor selecionado.");}};Controls.Add(manager);
-  var routing=ActionButton("Roteamento…",476,582,276,false);routing.Click+=(o,e)=>{route.ClientPath=game.Text;using(var dialog=new RoutingDialog(route)){if(dialog.ShowDialog(this)==DialogResult.OK){route=dialog.Options;game.Enabled=!route.Global;choose.Enabled=!route.Global;UpdateRouteSummary();}}};Controls.Add(routing);
-  routeSummary=new Label{Left=30,Top=636,Width=720,Height=24,ForeColor=muted};Controls.Add(routeSummary);UpdateRouteSummary();
-  LabelAt("Salvar não ativa o proxy. Aplique no ProxiFyre / Windows Packet Filter.\nA senha fica no JSON. Check não comprova o tráfego do jogo ou do sistema.",30,669,720,45,9,muted);
-  var saved=SessionStore.Load();if(saved!=null){game.Text=saved.Game??"";host.Text=saved.Host??"";port.Value=saved.Port>=1&&saved.Port<=65535?saved.Port:1080;user.Text=saved.User??"";pass.Text=saved.Password();route=saved.Route??new RoutingOptions();game.Enabled=choose.Enabled=!route.Global;UpdateRouteSummary();}
-  FormClosing+=(o,e)=>{try{SessionStore.Save(game.Text,host.Text,(int)port.Value,user.Text,pass.Text,route);}catch{/* App stays usable when profile storage is unavailable. */}};
+        var result = new Panel { Left=28, Top=472, Width=744, Height=152, BackColor=card };
+        Controls.Add(result);
+        connectionStatusLabel = new Label { Text="02   VERIFICAR PROXY", Left=24, Top=16, Width=530, Height=28, ForeColor=accent, Font=new Font("Segoe UI",12,FontStyle.Bold) };
+        directIpLabel = new Label { Text="Rede direta: —", Left=24, Top=54, Width=510, Height=25 };
+        proxyIpLabel = new Label { Text="Via SOCKS5: —", Left=24, Top=83, Width=510, Height=25 };
+        result.Controls.Add(connectionStatusLabel); result.Controls.Add(directIpLabel); result.Controls.Add(proxyIpLabel);
+        checkProxyButton = CreateButton("Check proxy",568,56,152,true);
+        checkProxyButton.Click += async (sender,e) => await CheckProxyAsync();
+        result.Controls.Add(checkProxyButton);
+        result.Controls.Add(new Label { Text="O Check verifica esta conexão, não o tráfego do jogo.",Left=24,Top=121,Width=695,Height=24,ForeColor=muted,Font=new Font("Segoe UI",9) });
 
- }
- async Task CheckStartup(){
-  var preferences=UpdatePreferences.Load();if(!preferences.CheckOnStartup||String.IsNullOrWhiteSpace(preferences.Repository))return;
-  try{var available=await Task.Run(()=>UpdateService.Check(preferences.Repository));if(!IsDisposed&&available!=null)OpenUpdates(available);}catch{/* Keep startup usable offline. */}
- }
- void OpenUpdates(PendingUpdate available){using(var dialog=new UpdateDialog(available)){dialog.ShowDialog(this);if(dialog.ExitForUpdate)Application.Exit();}}
- void UpdateRouteSummary(){routeSummary.Text=(route.Global?"Global / todos os apps":"Cliente final"+(route.LauncherPath.Length>0?" + launcher":""))+" • TCP"+(route.Udp?" + UDP":"")+" • "+(route.Ipv6?"IPv4 + IPv6":"IPv4");}
- void LabelAt(string t,int x,int y,int w,int h,int size,Color color){Controls.Add(new Label{Text=t,Left=x,Top=y,Width=w,Height=h,ForeColor=color,Font=new Font("Segoe UI",size)});}
- void StyleInput(Control c){c.BackColor=bg;c.ForeColor=Color.White;c.Font=new Font("Segoe UI",11);if(c is TextBox)((TextBox)c).BorderStyle=BorderStyle.FixedSingle;}
- void AddField(Panel panel,string name,Control c,int y){panel.Controls.Add(new Label{Text=name,Left=24,Top=y,Width=500,ForeColor=muted,Font=new Font("Segoe UI",9)});c.SetBounds(24,y+22,676,28);StyleInput(c);panel.Controls.Add(c);}
- Button ActionButton(string t,int x,int y,int w,bool primary){var b=new Button{Text=t,Left=x,Top=y,Width=w,Height=38,FlatStyle=FlatStyle.Flat,BackColor=primary?accent:card,ForeColor=Color.White,Cursor=Cursors.Hand};b.FlatAppearance.BorderSize=0;return b;}
- async Task Check(){
-  string h=host.Text.Trim(),u=user.Text,pw=pass.Text;int p=(int)port.Value;
-  try{RoutingConfiguration.ValidateProxy(h,p,u,pw);}catch(Exception ex){MessageBox.Show(ex.Message);return;}
-  check.Enabled=false;status.Text="Verificando conexão…";status.ForeColor=Color.White;directIp.Text="Rede direta: consultando…";proxyIp.Text="Via SOCKS5: consultando…";
-  try{
-   var directTask=Task.Run(()=>ProxyDiagnostics.Attempt(()=>ProxyDiagnostics.DirectIp()));var proxyTask=Task.Run(()=>ProxyDiagnostics.Attempt(()=>ProxyDiagnostics.ProxyIp(h,p,u,pw)));
-   await Task.WhenAll(directTask,proxyTask);if(IsDisposed)return;
-   var d=directTask.Result;var r=proxyTask.Result;
-   directIp.Text="Rede direta: "+d;proxyIp.Text="Via SOCKS5: "+r;
-   IPAddress dip,rip;bool dok=IPAddress.TryParse(d,out dip),rok=IPAddress.TryParse(r,out rip);
-   if(!rok){status.Text="Proxy não confirmado • sem fallback direto";status.ForeColor=Color.FromArgb(248,113,113);}
-   else if(!dok){status.Text="SOCKS5 funciona • comparação indisponível";status.ForeColor=Color.FromArgb(251,191,36);}
-   else if(dip.Equals(rip)){status.Text="SOCKS5 respondeu • mesmo IP de saída";status.ForeColor=Color.FromArgb(251,191,36);}
-   else {status.Text="Proxy funcionando • IP de saída diferente";status.ForeColor=Color.FromArgb(52,211,153);}
-  }finally{if(!IsDisposed)check.Enabled=true;}
- }
- void Save(){try{
-  route.ClientPath=game.Text;
-  string json=RoutingConfiguration.Build(route,host.Text,(int)port.Value,user.Text,pass.Text,true);
-  using(var d=new SaveFileDialog{Filter="Configuração JSON|*.json",FileName="app-config.json",OverwritePrompt=true})if(d.ShowDialog()==DialogResult.OK){File.WriteAllText(d.FileName,json,new UTF8Encoding(false));MessageBox.Show("Configuração salva: "+(route.Global?"Global / todos os aplicativos":"Cliente do jogo")+". Aplique e reinicie o serviço elevado no ProxiFyre. Salvar não ativa o roteamento.");}
- }catch(Exception ex){MessageBox.Show(ex.Message,"Confira os campos");}}
+        var save = CreateButton("Salvar configuração",28,645,235,true);
+        save.Click += (sender,e) => SaveProxyConfig(); Controls.Add(save);
+        var manager = CreateButton("Motor de rede",282,645,235,false);
+        manager.Click += (sender,e) => OpenEngine(); Controls.Add(manager);
+        var routing = CreateButton("Roteamento",537,645,235,false);
+        routing.Click += (sender,e) =>
+        {
+            routingOptions.ClientPath = clientPathBox.Text;
+            using (var dialog = new RoutingDialog(routingOptions))
+            {
+                if (dialog.ShowDialog(this) == DialogResult.OK)
+                {
+                    routingOptions=dialog.Options; clientPathBox.Enabled=choose.Enabled=!routingOptions.Global; UpdateRoutingStatus();
+                }
+            }
+        };
+        Controls.Add(routing);
+        routingStatusLabel=new Label { Left=30,Top=706,Width=740,Height=25,ForeColor=muted };
+        Controls.Add(routingStatusLabel);
+        AddLabel("Aplique a configuração no ProxiFyre. Salvar não ativa o roteamento.\nA senha fica no JSON exportado. PKAproxy " + UpdateService.Current,30,743,740,43,9,muted);
+        var saved = SessionStore.Load();
+        if(saved != null)
+        {
+            clientPathBox.Text=saved.Game??""; proxyHostBox.Text=saved.Host??"";
+            proxyPortBox.Value=saved.Port>=1&&saved.Port<=65535?saved.Port:1080;
+            usernameBox.Text=saved.User??""; passwordBox.Text=saved.Password();
+            routingOptions=saved.Route??new RoutingOptions(); clientPathBox.Enabled=choose.Enabled=!routingOptions.Global;
+        }
+        UpdateRoutingStatus();
+        FormClosing += (sender,e) =>
+        {
+            try { SessionStore.Save(clientPathBox.Text,proxyHostBox.Text,(int)proxyPortBox.Value,usernameBox.Text,passwordBox.Text,routingOptions); }
+            catch { /* Keep the app usable if profile storage is unavailable. */ }
+        };
+    }
+    void OpenEngine()
+    {
+        try
+        {
+            using(var picker=new OpenFileDialog { Title="Selecione o ProxiFyre instalado",Filter="Executável ProxiFyre|*.exe" })
+            {
+                if(picker.ShowDialog(this)==DialogResult.OK)
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(picker.FileName) { UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(picker.FileName) });
+            }
+        }
+        catch { MessageBox.Show("Não foi possível abrir o motor selecionado."); }
+    }
+    async Task CheckForUpdatesAsync()
+    {
+        var preferences=UpdatePreferences.Load();
+        if(!preferences.CheckOnStartup||String.IsNullOrWhiteSpace(preferences.Repository))return;
+        try
+        {
+            var available=await Task.Run(()=>UpdateService.Check(preferences.Repository));
+            if(!IsDisposed&&available!=null)ShowUpdates(available);
+        }
+        catch
+        {
+            /* Keep startup usable offline. */
+        }
+    }
+    void ShowUpdates(PendingUpdate available)
+    {
+        using(var dialog=new UpdateDialog(available))
+        {
+            dialog.ShowDialog(this);
+            if(dialog.ExitForUpdate)Application.Exit();
+        }
+    }
+    void UpdateRoutingStatus()
+    {
+        routingStatusLabel.Text=(routingOptions.Global?"Global / todos os apps":"Cliente final"+(routingOptions.LauncherPath.Length>0?" + launcher":""))+" • TCP"+(routingOptions.Udp?" + UDP":"")+" • "+(routingOptions.Ipv6?"IPv4 + IPv6":"IPv4");
+    }
+    void AddLabel(string t,int x,int y,int w,int h,int size,Color color)
+    {
+        Controls.Add(new Label
+        {
+            Text=t,Left=x,Top=y,Width=w,Height=h,ForeColor=color,Font=new Font("Segoe UI",size)
+        });
+    }
+    void ApplyInputStyle(Control c)
+    {
+        c.BackColor=bg;
+        c.ForeColor=Color.White;
+        c.Font=new Font("Segoe UI",11);
+        if(c is TextBox)((TextBox)c).BorderStyle=BorderStyle.FixedSingle;
+    }
+    void CreateField(Panel panel,string name,Control c,int y)
+    {
+        panel.Controls.Add(new Label
+        {
+            Text=name,Left=24,Top=y,Width=500,ForeColor=muted,Font=new Font("Segoe UI",9)
+        });
+        c.SetBounds(24,y+22,676,28);
+        ApplyInputStyle(c);
+        panel.Controls.Add(c);
+    }
+    Button CreateButton(string t,int x,int y,int w,bool primary)
+    {
+        var b=new Button
+        {
+            Text=t,Left=x,Top=y,Width=w,Height=38,FlatStyle=FlatStyle.Flat,BackColor=primary?accent:card,ForeColor=primary?Color.FromArgb(20,22,28):Color.White,Cursor=Cursors.Hand,Font=new Font("Segoe UI",10,FontStyle.Bold)
+        };
+        b.FlatAppearance.BorderSize=0;
+        return b;
+    }
+    async Task CheckProxyAsync()
+    {
+        string h=proxyHostBox.Text.Trim(),u=usernameBox.Text,pw=passwordBox.Text;
+        int p=(int)proxyPortBox.Value;
+        try
+        {
+            RoutingConfiguration.ValidateProxy(h,p,u,pw);
+        }
+        catch(Exception ex)
+        {
+            MessageBox.Show(ex.Message);
+            return;
+        }
+        checkProxyButton.Enabled=false;
+        connectionStatusLabel.Text="Verificando conexão…";
+        connectionStatusLabel.ForeColor=Color.White;
+        directIpLabel.Text="Rede direta: consultando…";
+        proxyIpLabel.Text="Via SOCKS5: consultando…";
+        try
+        {
+            var directTask=Task.Run(()=>ProxyDiagnostics.Attempt(()=>ProxyDiagnostics.DirectIp()));
+            var proxyTask=Task.Run(()=>ProxyDiagnostics.Attempt(()=>ProxyDiagnostics.ProxyIp(h,p,u,pw)));
+            await Task.WhenAll(directTask,proxyTask);
+            if(IsDisposed)return;
+            var d=directTask.Result;
+            var r=proxyTask.Result;
+            directIpLabel.Text="Rede direta: "+d;
+            proxyIpLabel.Text="Via SOCKS5: "+r;
+            IPAddress dip,rip;
+            bool dok=IPAddress.TryParse(d,out dip),rok=IPAddress.TryParse(r,out rip);
+            if(!rok)
+            {
+                connectionStatusLabel.Text="Proxy não confirmado • sem fallback direto";
+                connectionStatusLabel.ForeColor=Color.FromArgb(248,113,113);
+            }
+            else if(!dok)
+            {
+                connectionStatusLabel.Text="SOCKS5 funciona • comparação indisponível";
+                connectionStatusLabel.ForeColor=Color.FromArgb(251,191,36);
+            }
+            else if(dip.Equals(rip))
+            {
+                connectionStatusLabel.Text="SOCKS5 respondeu • mesmo IP de saída";
+                connectionStatusLabel.ForeColor=Color.FromArgb(251,191,36);
+            }
+            else
+            {
+                connectionStatusLabel.Text="Proxy funcionando • IP de saída diferente";
+                connectionStatusLabel.ForeColor=Color.FromArgb(52,211,153);
+            }
+        }
+        finally
+        {
+            if(!IsDisposed)checkProxyButton.Enabled=true;
+        }
+    }
+    void SaveProxyConfig()
+    {
+        try
+        {
+            routingOptions.ClientPath=clientPathBox.Text;
+            string json=RoutingConfiguration.Build(routingOptions,proxyHostBox.Text,(int)proxyPortBox.Value,usernameBox.Text,passwordBox.Text,true);
+            using(var d=new SaveFileDialog
+            {
+                Filter="Configuração JSON|*.json",FileName="app-config.json",OverwritePrompt=true,InitialDirectory=AppPaths.Root
+            })if(d.ShowDialog()==DialogResult.OK)
+            {
+                File.WriteAllText(d.FileName,json,new UTF8Encoding(false));
+                MessageBox.Show("Configuração salva: "+(routingOptions.Global?"Global / todos os aplicativos":"Cliente do jogo")+". Aplique e reinicie o serviço elevado no ProxiFyre. Salvar não ativa o roteamento.");
+            }
+        }
+        catch(Exception ex)
+        {
+            MessageBox.Show(ex.Message,"Confira os campos");
+        }
+    }
 }

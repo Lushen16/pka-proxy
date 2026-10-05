@@ -1,1 +1,1 @@
-public static class InstallerIntegrity { public const string PayloadHash = "612113A5FD03AFB9E6772BA19131583314496040239BDE34D72701EB5235CC0A"; }
+public static class InstallerIntegrity { public const string PayloadHash = "71F616CA24EB91C85F8186F426F29AA2D5E9DA0A5C4ECAFF81E1389D6AC6CB18"; }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,6 +16,7 @@ static class Program
     [STAThread] static int Main(string[] args)
     {
         ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
+        if(args.Length>0&&(args[0]=="--engine-apply"||args[0]=="--engine-stop"))return EngineController.Apply(args);
         if(args.Length>0&&args[0]=="--apply-update")return UpdateInstaller.Apply(args);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
@@ -68,3 +69,4 @@ static class Program
         return 0;
     }
 }
+

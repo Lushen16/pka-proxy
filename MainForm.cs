@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -16,13 +16,13 @@ public class MainForm : Form
     TextBox clientPathBox=new TextBox(),proxyHostBox=new TextBox(),usernameBox=new TextBox(),passwordBox=new TextBox();
     NumericUpDown proxyPortBox=new NumericUpDown();
     RoutingOptions routingOptions=new RoutingOptions();
-    Button checkProxyButton;
+    Button checkProxyButton,connectButton,disconnectButton;
     Label connectionStatusLabel,directIpLabel,proxyIpLabel,routingStatusLabel;
     Color bg=Color.FromArgb(15,17,23),card=Color.FromArgb(27,30,39),muted=Color.FromArgb(167,173,188),accent=Color.FromArgb(250,190,55);
     public MainForm()
     {
         Text = "PKAproxy";
-        ClientSize = new Size(800, 790);
+        ClientSize = new Size(800, 850);
         BackColor = bg;
         ForeColor = Color.White;
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -75,7 +75,7 @@ public class MainForm : Form
         var save = CreateButton("Salvar configuração",28,645,235,true);
         save.Click += (sender,e) => SaveProxyConfig(); Controls.Add(save);
         var manager = CreateButton("Motor de rede",282,645,235,false);
-        manager.Click += (sender,e) => OpenEngine(); Controls.Add(manager);
+        manager.Text="Verificar Global"; manager.Click += async (sender,e) => await VerifyRoutingAsync(); Controls.Add(manager);
         var routing = CreateButton("Roteamento",537,645,235,false);
         routing.Click += (sender,e) =>
         {
@@ -89,9 +89,11 @@ public class MainForm : Form
             }
         };
         Controls.Add(routing);
-        routingStatusLabel=new Label { Left=30,Top=706,Width=740,Height=25,ForeColor=muted };
+        connectButton=CreateButton("Conectar / aplicar",28,699,355,true); connectButton.Click += async (sender,e) => await ConnectAsync(false); Controls.Add(connectButton);
+        disconnectButton=CreateButton("Desconectar",402,699,370,false); disconnectButton.Click += async (sender,e) => await ConnectAsync(true); Controls.Add(disconnectButton);
+        routingStatusLabel=new Label { Left=30,Top=749,Width=740,Height=25,ForeColor=muted };
         Controls.Add(routingStatusLabel);
-        AddLabel("Aplique a configuração no ProxiFyre. Salvar não ativa o roteamento.\nA senha fica no JSON exportado. PKAproxy " + UpdateService.Current,30,743,740,43,9,muted);
+        AddLabel("Conectar instala o motor oficial e aplica a regra (permissão de administrador).\nReabra o navegador após conectar. PKAproxy " + UpdateService.Current,30,790,740,43,9,muted);
         var saved = SessionStore.Load();
         if(saved != null)
         {
@@ -101,11 +103,51 @@ public class MainForm : Form
             routingOptions=saved.Route??new RoutingOptions(); clientPathBox.Enabled=choose.Enabled=!routingOptions.Global;
         }
         UpdateRoutingStatus();
+        var monitor=new System.Windows.Forms.Timer {Interval=3000}; monitor.Tick+=(s,e)=>UpdateRoutingStatus(); monitor.Start(); FormClosed+=(s,e)=>monitor.Dispose();
         FormClosing += (sender,e) =>
         {
             try { SessionStore.Save(clientPathBox.Text,proxyHostBox.Text,(int)proxyPortBox.Value,usernameBox.Text,passwordBox.Text,routingOptions); }
             catch { /* Keep the app usable if profile storage is unavailable. */ }
         };
+    }
+    async Task ConnectAsync(bool stop)
+    {
+        var request=new EngineRequest { Route=routingOptions.Copy(),Host=proxyHostBox.Text.Trim(),Port=(int)proxyPortBox.Value,User=usernameBox.Text,Password=passwordBox.Text };
+        request.Route.ClientPath=clientPathBox.Text;
+        try
+        {
+            if(!stop)RoutingConfiguration.Build(request.Route,request.Host,request.Port,request.User,request.Password,true);
+            connectButton.Enabled=disconnectButton.Enabled=false;
+            routingStatusLabel.Text=stop?"Desconectando…":"Instalando / ativando motor… conclua os avisos do Windows";
+            await Task.Run(()=>EngineController.RunElevated(request,stop));
+            UpdateRoutingStatus();
+            if(!stop&&request.Route.Global)await VerifyRoutingAsync();
+            else if(!stop)MessageBox.Show("Motor ativo. Reabra o cliente do jogo para aplicar às novas conexões.");
+        }
+        catch(Exception e) {MessageBox.Show(e.Message,"PKAproxy");UpdateRoutingStatus();}
+        finally {connectButton.Enabled=disconnectButton.Enabled=true;}
+    }
+    async Task VerifyRoutingAsync()
+    {
+        if(!routingOptions.Global){MessageBox.Show("Esta consulta verifica o modo Global. No modo jogo, o processo de teste continua na rede normal.");return;}
+        checkProxyButton.Enabled=false;
+        connectionStatusLabel.Text="Verificando outro processo…";
+        try
+        {
+            string host=proxyHostBox.Text.Trim(),user=usernameBox.Text,password=passwordBox.Text;int port=(int)proxyPortBox.Value;
+            var expectedTask=Task.Run(()=>ProxyDiagnostics.ProxyIp(host,port,user,password));
+            var routedTask=Task.Run(()=>EngineController.RoutedIp());
+            await Task.WhenAll(expectedTask,routedTask);
+            proxyIpLabel.Text="Processo no Global: "+routedTask.Result;
+            directIpLabel.Text="Saída esperada SOCKS5: "+expectedTask.Result;
+            bool running=EngineController.Status().StartsWith("Motor ativo");
+            bool matches=running&&routedTask.Result==expectedTask.Result;
+            connectionStatusLabel.Text=matches?"Global verificado neste processo":"Global não confirmado • confira o motor";
+            connectionStatusLabel.ForeColor=matches?Color.FromArgb(52,211,153):Color.FromArgb(248,113,113);
+            MessageBox.Show(matches?"O processo de teste saiu pelo IP da proxy. Feche completamente e reabra o navegador para testar conexões novas. Este teste confirma HTTPS/TCP, não todos os protocolos.":"O IP do processo de teste não confirmou a proxy. Não considere o Global conectado.","Teste de roteamento");
+        }
+        catch(Exception e){connectionStatusLabel.Text="Global não confirmado";connectionStatusLabel.ForeColor=Color.FromArgb(248,113,113);MessageBox.Show(e.Message);}
+        finally{checkProxyButton.Enabled=true;}
     }
     void OpenEngine()
     {
@@ -143,7 +185,7 @@ public class MainForm : Form
     }
     void UpdateRoutingStatus()
     {
-        routingStatusLabel.Text=(routingOptions.Global?"Global / todos os apps":"Cliente final"+(routingOptions.LauncherPath.Length>0?" + launcher":""))+" • TCP"+(routingOptions.Udp?" + UDP":"")+" • "+(routingOptions.Ipv6?"IPv4 + IPv6":"IPv4");
+        routingStatusLabel.Text=EngineController.Status()+" • "+(routingOptions.Global?"Global / todos os apps":"Cliente final"+(routingOptions.LauncherPath.Length>0?" + launcher":""))+" • TCP"+(routingOptions.Udp?" + UDP":"")+" • "+(routingOptions.Ipv6?"IPv4 + IPv6":"IPv4");
     }
     void AddLabel(string t,int x,int y,int w,int h,int size,Color color)
     {
@@ -225,7 +267,7 @@ public class MainForm : Form
             }
             else
             {
-                connectionStatusLabel.Text="Proxy funcionando • IP de saída diferente";
+                connectionStatusLabel.Text="SOCKS5 funciona • roteamento não verificado";
                 connectionStatusLabel.ForeColor=Color.FromArgb(52,211,153);
             }
         }
@@ -255,3 +297,4 @@ public class MainForm : Form
         }
     }
 }
+

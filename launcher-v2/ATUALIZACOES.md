@@ -1,3 +1,5 @@
+Canal das versões de teste (desde 2.0.3.0): ao abrir, consulta até 100 releases publicadas via API do GitHub, incluindo pré-releases. Ignora drafts e pacotes sem manifesto/assinatura/executável. Escolhe a maior versão numérica; verifica assinatura, correspondência da tag, hash e versão antes de aplicar. Sem rede ou com erro mantém o aplicativo atual. Builds anteriores usam somente /latest e precisam instalar esta correção manualmente uma vez.
+
 # Atualizações automáticas — V2.0.1.0
 
 Ao abrir normalmente, o PKA consulta as Releases estáveis de Lushen16/pka-proxy, verifica a assinatura RSA do manifesto e, quando encontra uma versão mais recente, baixa, valida, instala e reinicia sem confirmação adicional. Não consulta commits da branch nem compila código baixado. Não instala drafts ou prereleases.

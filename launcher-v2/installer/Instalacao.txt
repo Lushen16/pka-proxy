@@ -1,4 +1,4 @@
-PKA Proxy Launcher 2.0.2 — versão de teste
+PKA Proxy Launcher 2.0.3 — versão de teste
 
 Windows 10/11 x64 e .NET Framework 4.7.2 ou superior.
 Instalação para o usuário atual. A ativação do proxy pede permissão de administrador.

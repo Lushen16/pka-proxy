@@ -21,6 +21,14 @@ public sealed class PendingUpdate
     public string Repository,Folder;
     public UpdateManifest Manifest;
 }
+public sealed class PublishedAsset { public string name {get;set;} }
+public sealed class PublishedRelease
+{
+    public string tag_name {get;set;}
+    public bool draft {get;set;}
+    public bool prerelease {get;set;}
+    public PublishedAsset[] assets {get;set;}
+}
 public sealed class UpdatePreferences
 {
     public string Repository
@@ -122,12 +130,34 @@ public static class UpdateService
             }
         }
     }
+    public static string SelectReleaseTag(byte[] listing,bool includePrereleases)
+    {
+        var releases=new JavaScriptSerializer().Deserialize<PublishedRelease[]>(Encoding.UTF8.GetString(listing));
+        Version best=Current;string tag=null;
+        foreach(var release in releases??new PublishedRelease[0])
+        {
+            if(release==null||release.draft||(!includePrereleases&&release.prerelease))continue;
+            if(!Regex.IsMatch(release.tag_name??"",@"\Av[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\z"))continue;
+            Version version;if(!Version.TryParse(release.tag_name.Substring(1),out version)||version<=best)continue;
+            bool manifest=false,signature=false,binary=false;
+            foreach(var asset in release.assets??new PublishedAsset[0])if(asset!=null)
+            {manifest|=asset.name=="update.json";signature|=asset.name=="update.sig";binary|=asset.name=="PKA-Proxy.exe";}
+            if(!manifest||!signature||!binary)continue;
+            best=version;tag=release.tag_name;
+        }
+        return tag;
+    }
     public static PendingUpdate Check(string repository)
     {
         repository=Repository(repository);
-        string root="https://github.com/"+repository+"/releases/latest/download/";
+        // These candidate builds follow both stable and published test releases.
+        // Metadata only locates the tag; the pinned signing key remains the trust boundary.
+        string tag=SelectReleaseTag(Download("https://api.github.com/repos/"+repository+"/releases?per_page=100",1024*1024),true);
+        if(tag==null)return null;
+        string root="https://github.com/"+repository+"/releases/download/"+tag+"/";
         byte[] data=Download(root+"update.json",16384),signature=Download(root+"update.sig",1024);
         var m=VerifyManifest(data,signature,UpdateTrust.PublicKey);
+        if(tag!="v"+m.version)throw new InvalidOperationException("Versão assinada não corresponde à release.");
         if(new Version(m.version)<=Current)return null;
         string folder=Path.Combine(AppPaths.Root,"cache",Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);

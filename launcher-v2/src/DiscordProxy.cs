@@ -63,12 +63,12 @@ public static class DiscordProxy
    foreach(var process in Process.GetProcessesByName("Discord")){process.Dispose();throw new InvalidOperationException("Feche o Discord antes de ativar.");}
    ProxyDiagnostics.ProxyIp(profile.Host,profile.Port,profile.User,profile.Password);
    SecureDirectory(Path.GetDirectoryName(PrivateRoot));SecureDirectory(PrivateRoot);
-   string exe=Path.Combine(PrivateRoot,"Litfix-Discord.exe");File.Copy(Process.GetCurrentProcess().MainModule.FileName,exe,true);File.WriteAllBytes(ProfileFile,Encode(profile));
+   string exe=Path.Combine(PrivateRoot,"Litfix-Discord.exe");using(var resource=System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("PKAengine.exe")){if(resource==null)throw new IOException("O pacote não contém o motor permanente.");using(var target=File.Create(exe))resource.CopyTo(target);}File.WriteAllBytes(ProfileFile,Encode(profile));
    string xml=Path.Combine(PrivateRoot,"task.xml");File.WriteAllText(xml,TaskXml(WindowsIdentity.GetCurrent().User.Value,exe),Encoding.Unicode);
    installed=true;string stopFile=Path.Combine(PrivateRoot,"stop");if(File.Exists(stopFile))File.Delete(stopFile);
    Schedule("/Create /TN \""+TaskName+"\" /XML \""+xml+"\" /F",true);Schedule("/Run /TN \""+TaskName+"\"",true);
    var clock=Stopwatch.StartNew();while(clock.ElapsedMilliseconds<55000){if(EngineController.Mode()=="DISCORD")return 0;Thread.Sleep(500);}
-   throw new IOException("O túnel permanente não iniciou.");
+   string detail="O túnel permanente não iniciou.";string ready=Path.Combine(PrivateRoot,"engine-discord.bin.ready");if(File.Exists(ready))detail+=" "+File.ReadAllText(ready);throw new IOException(detail);
   }catch(Exception error){
    try{Directory.CreateDirectory(AppPaths.Root);File.WriteAllText(AppPaths.SettingsFile("discord-operation-error.txt"),error.Message);}catch{}
    // A failed enable must not leave a startup job or an orphaned protection policy.

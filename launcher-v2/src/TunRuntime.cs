@@ -1,4 +1,4 @@
-using System;using System.IO;using System.Text;using System.Diagnostics;using System.Threading;using System.Security.Cryptography;using System.Security.Principal;using System.Security.AccessControl;using System.IO.Pipes;using System.ServiceProcess;using System.Web.Script.Serialization;using System.Runtime.InteropServices;
+﻿using System;using System.IO;using System.Text;using System.Diagnostics;using System.Threading;using System.Security.Cryptography;using System.Security.Principal;using System.Security.AccessControl;using System.IO.Pipes;using System.ServiceProcess;using System.Web.Script.Serialization;using System.Runtime.InteropServices;
 public static class TunRuntime
 {
     const string CoreHash="7BBEF1DEA9189EE12799AE834EA4B4658355DA25C47A21AD8804904C0CCD9410";
@@ -71,10 +71,11 @@ public static class TunRuntime
             user=request.User;password=request.Password;
             singleton=new Mutex(false,@"Global\PKAproxy-TUN");try{owns=singleton.WaitOne(0);}catch(AbandonedMutexException){owns=true;}
             if(!owns)throw new InvalidOperationException("Já existe um motor Global ativo. Desconecte a outra instância.");
-            if(NetworkGuard.IsArmed)throw new InvalidOperationException("Proteção anterior instalada ou estado indisponível. Libere explicitamente a rede antes de ativar outra sessão.");
+            if(NetworkGuard.ArmedState==null||(NetworkGuard.IsArmed&&!(request.PermanentDiscord&&DiscordProxy.OwnsGuard)))throw new InvalidOperationException("Proteção anterior instalada ou estado indisponível. Libere explicitamente a rede antes de ativar outra sessão.");
             string json=TunConfiguration.Build(request);
             if(!OwnerAlive(request))throw new IOException("A janela que solicitou conexão foi encerrada.");
-            ProxyDiagnostics.ProxyIp(request.Host,request.Port,request.User,request.Password);
+            ProxyDiagnostics.ProxyIp(request.Host,request.Port,request.User,request.Password,request.Protocol,request.ProxyTls,request.TlsName);
+            if(request.Route.Udp)ProxyDiagnostics.CheckUdp(request.Host,request.Port,request.User,request.Password,request.Protocol);
             string exe=InstallCore();config=Path.Combine(Path.GetDirectoryName(exe),"active.json");File.WriteAllText(config,json,new UTF8Encoding(false));
             using(var check=Process.Start(new ProcessStartInfo(exe,"check -c \""+config+"\""){UseShellExecute=false,CreateNoWindow=true,RedirectStandardError=true,RedirectStandardOutput=true}))
             {string errors=check.StandardError.ReadToEnd();if(!check.WaitForExit(15000)||check.ExitCode!=0){Log(errors);throw new IOException("O motor rejeitou a configuração. Abra Diagnóstico.");}}
@@ -82,27 +83,30 @@ public static class TunRuntime
             string probe=Path.Combine(AppPaths.Root,"probe","PKArouteProbe.exe");
             Directory.CreateDirectory(Path.GetDirectoryName(probe));
             using(var resource=System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("PKArouteProbe.exe"))using(var target=File.Create(probe))resource.CopyTo(target);
+            if(request.PermanentDiscord)DiscordProxy.MarkGuard();
             NetworkGuard.Apply(request,exe,probe,false);
             core=new Process {StartInfo=new ProcessStartInfo(exe,"run -c \""+config+"\""){UseShellExecute=false,CreateNoWindow=false,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardError=true,RedirectStandardOutput=true},EnableRaisingEvents=true};
             job=new TunJob();core.ErrorDataReceived+=(s,e)=>Log(e.Data);core.OutputDataReceived+=(s,e)=>Log(e.Data);StartHiddenCore(core);job.Assign(core);core.BeginErrorReadLine();core.BeginOutputReadLine();
             if(core.WaitForExit(3500))throw new IOException("Motor não iniciou. Abra Diagnóstico para ver o motivo.");
             NetworkGuard.Apply(request,exe,probe,true);
             // Probe is included in both the routing policy and persistent guard.
-            EngineController.RoutedIp();
+            EngineController.RoutedIp(true);
             var access=new PipeSecurity();access.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().User,PipeAccessRights.FullControl,AccessControlType.Allow));
-            bool first=true,stop=false;
-            while(!core.HasExited&&OwnerAlive(request)&&!stop)
+            bool first=true,stop=false;DateTime lastDiscordScan=DateTime.UtcNow;
+            while(!core.HasExited&&OwnerAlive(request)&&!stop&&!(request.PermanentDiscord&&DiscordProxy.StopRequested))
             {
                 using(var pipe=new NamedPipeServerStream(EngineController.PipeName,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous,4096,4096,access))
                 {
                     var pending=pipe.BeginWaitForConnection(null,null);
                     if(first){if(!File.Exists(requestPath))throw new IOException("Conexão cancelada.");File.WriteAllText(requestPath+".ready","OK");first=false;}
-                    while(!pending.AsyncWaitHandle.WaitOne(300)){if(core.HasExited||!OwnerAlive(request)){stop=true;break;}}
+                    while(!pending.AsyncWaitHandle.WaitOne(300)){if(core.HasExited||!OwnerAlive(request)||(request.PermanentDiscord&&DiscordProxy.StopRequested)){stop=true;break;}if(request.PermanentDiscord&&(DateTime.UtcNow-lastDiscordScan).TotalSeconds>=15){lastDiscordScan=DateTime.UtcNow;bool changed=false;foreach(string app in DiscordProxy.InstalledDiscordPaths(request.Route.Apps[0].Path))if(!request.Route.Apps.Exists(a=>String.Equals(a.Path,app,StringComparison.OrdinalIgnoreCase))){request.Route.Apps.Add(new RegisteredApp{Path=app});changed=true;}if(changed)NetworkGuard.Apply(request,exe,probe,true);}}
                     if(stop)break;pipe.EndWaitForConnection(pending);
                     using(var reader=new StreamReader(pipe,Encoding.UTF8,false,1024,true))using(var writer=new StreamWriter(pipe,Encoding.UTF8,1024,true))
                     {
                         writer.AutoFlush=true;var read=reader.ReadLineAsync();if(!read.Wait(2000))continue;
                         if(read.Result=="STOP"){StopCore(core);writer.WriteLine("STOPPED");stop=true;}
+                        else if(read.Result=="MODE")writer.WriteLine(request.PermanentDiscord?"DISCORD":"NORMAL");
+                        else if(read.Result=="IP"){try{writer.WriteLine(EngineController.RoutedIp(true));}catch{writer.WriteLine("FAILED");}}
                         else writer.WriteLine(read.Result=="STATUS"&&!core.HasExited?"RUNNING":"UNKNOWN");
                     }
                 }

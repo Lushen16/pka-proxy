@@ -1,10 +1,13 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text;
 using System.Security.Cryptography;
 using System.Web.Script.Serialization;
 public sealed class SavedSession
 {
+    public string Protocol { get; set; }
+    public bool? ProxyTls { get; set; }
+    public string TlsName { get; set; }
     public string Game
     { get; set; }
     public string Host
@@ -51,10 +54,18 @@ public static class SessionStore
     }
     public static void Save(string game,string host,int port,string user,string password,RoutingOptions route)
     {
+        Save(game,host,port,user,password,route,"SOCKS5");
+    }
+    public static void Save(string game,string host,int port,string user,string password,RoutingOptions route,string protocol)
+    {
+        Save(game,host,port,user,password,route,protocol,true,"");
+    }
+    public static void Save(string game,string host,int port,string user,string password,RoutingOptions route,string protocol,bool proxyTls,string tlsName)
+    {
         route.ClientPath=game;
         var session=new SavedSession
         {
-            Game=game,Host=host,Port=port,User=user,Route=route,ProtectedPassword=Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(password),null,DataProtectionScope.CurrentUser))
+            ProxyTls=proxyTls,TlsName=tlsName,Protocol=protocol,Game=game,Host=host,Port=port,User=user,Route=route,ProtectedPassword=Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(password),null,DataProtectionScope.CurrentUser))
         };
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath));
         File.WriteAllBytes(ConfigPath,ProtectedData.Protect(Encoding.UTF8.GetBytes(new JavaScriptSerializer().Serialize(session)),null,DataProtectionScope.CurrentUser));

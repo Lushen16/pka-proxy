@@ -1,9 +1,10 @@
-Litfix 2.0.4 — versão de teste
+﻿Litfix 2.0.9.0 — compilação local de teste
 
-Windows 10/11 x64 e .NET Framework 4.7.2 ou superior.
-Instalação para o usuário atual. A ativação do proxy pede permissão de administrador.
-O motor de rede está incluído. A instalação não ativa o proxy nem altera filtros de rede.
-Feche o Litfix antes de instalar ou reinstalar. As configurações são preservadas.
-Antes de desinstalar, pare o proxy e use Liberar rede direta.
-As credenciais e configurações não são apagadas pela desinstalação.
-Assinatura RSA disponível separadamente; sem certificado Authenticode, o Windows pode mostrar editor desconhecido.
+Windows 10/11 x64, .NET Framework 4.7.2 ou superior.
+Aba Discord: configuração independente, início ao entrar no Windows e limpeza na desinstalação.
+Modo permanente exige conta de administrador e SOCKS5 com UDP.
+Esta compilação ainda precisa de validação de reinício e desinstalação com a tarefa ativa.
+A instalação não ativa o túnel. Feche o Litfix antes de instalar.
+Chamadas Discord exigem SOCKS5 com UDP disponível no provedor.
+Para desinstalar, pare o túnel e use Liberar rede direta.
+Este instalador local não possui assinatura RSA nem Authenticode.

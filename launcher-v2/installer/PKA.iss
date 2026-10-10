@@ -1,7 +1,7 @@
-[Setup]
+﻿[Setup]
 AppId={{94CB85DC-2356-4C38-904B-38BC51226FB3}
 AppName=Litfix
-AppVersion=2.0.7.0
+AppVersion=2.0.9.0
 AppPublisher=Lushen16
 AppPublisherURL=https://github.com/Lushen16/LIT-fix
 DefaultDirName={localappdata}\Programs\Litfix
@@ -12,7 +12,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..
-OutputBaseFilename=Litfix-Setup-2.0.7.0
+OutputBaseFilename=Litfix-Setup-2.0.9.0
 SetupIconFile=..\PKAproxy.ico
 UninstallDisplayIcon={app}\Litfix-brand-2.0.5.ico
 Compression=lzma2
@@ -32,11 +32,14 @@ Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDesc
 [Files]
 Source: "..\PKAproxy.ico"; DestDir: "{app}"; DestName: "Litfix-brand-2.0.5.ico"; Flags: ignoreversion
 Source: "..\PKA-Proxy.exe"; DestDir: "{app}"; Flags: ignoreversion
+#ifndef LocalUnsigned
 Source: "..\PKA-Proxy.exe.sig"; DestDir: "{app}"; Flags: ignoreversion
+#endif
 Source: "..\Verificar-assinatura.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\PUBLIC-KEY.xml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\PUBLIC-KEY-SHA256.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Recuperar-rede.cmd"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\DISCORD-PERMANENTE.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LEIA-ME.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\INSTALADOR.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\SEGURANCA.md"; DestDir: "{app}"; Flags: ignoreversion
@@ -75,8 +78,19 @@ begin
 end;
 
 function InitializeUninstall(): Boolean;
+var ResultCode: Integer;
 begin
   Result := False;
+  if FileExists(ExpandConstant('{app}\PKA-Proxy.exe')) then begin
+    if not ShellExec('runas', ExpandConstant('{app}\PKA-Proxy.exe'), '--discord-disable', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then begin
+      MsgBox('Permita a remoção da proxy permanente do Discord para desinstalar.', mbError, MB_OK);
+      exit;
+    end;
+    if ResultCode <> 0 then begin
+      MsgBox('Não foi possível remover a proxy permanente. Use a aba Discord e tente novamente.', mbError, MB_OK);
+      exit;
+    end;
+  end;
   if CheckForMutexes('Global\PKAproxy-TUN') then begin
     MsgBox('Pare o proxy antes de desinstalar.', mbError, MB_OK);
     exit;

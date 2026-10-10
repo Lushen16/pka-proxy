@@ -1,4 +1,4 @@
-using System;using System.Drawing;using System.Net;using System.Windows.Forms;
+﻿using System;using System.Drawing;using System.Net;using System.Windows.Forms;
 static class Program
 {
  [System.Runtime.InteropServices.DllImport("shell32.dll",CharSet=System.Runtime.InteropServices.CharSet.Unicode)]
@@ -6,6 +6,9 @@ static class Program
  [STAThread]static int Main(string[] args)
  {
   ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
+  if(args.Length>0&&args[0]=="--discord-enable")return DiscordProxy.Enable();
+  if(args.Length>0&&args[0]=="--discord-disable")return DiscordProxy.Disable();
+  if(args.Length>0&&args[0]=="--discord-background")return DiscordProxy.Background();
   if(args.Length>0&&args[0]=="--apply-update")return UpdateInstaller.Apply(args);
   if(args.Length>0&&(args[0]=="--engine-apply"||args[0]=="--engine-stop"||args[0]=="--guard-release"))return EngineController.Apply(args);
   SetCurrentProcessExplicitAppUserModelID("Lushen16.Litfix");

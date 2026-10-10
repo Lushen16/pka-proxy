@@ -1,4 +1,6 @@
-﻿# Litfix 2.0.9.0 — compilação local de teste
+﻿# Litfix 2.0.10.0 — compilação local de teste
+
+Corrigida a falha de abertura ao carregar aplicativos selecionados de um perfil salvo. O teste test-startup.ps1 reproduziu o erro na 2.0.9 e confirmou abertura e seleção na versão corrigida.
 
 Nova aba Discord com proxy separada, execução em segundo plano, início ao entrar no Windows e limpeza na desinstalação. Leia DISCORD-PERMANENTE.md para funcionamento e limites de validação.
 

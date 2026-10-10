@@ -27,7 +27,7 @@ public class MainForm:Form
   sidebar.Controls.Add(Label("V"+UpdateService.Current+"  •  WINDOWS x64\nSOCKS5 / HTTPS\n\nTCP / UDP via SOCKS5\nIPv6 bloqueado",24,544,165,130,9,muted));
   content.SetBounds(225,20,835,720);content.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right;Controls.Add(content);
   foreach(Panel page in pages){page.Dock=DockStyle.Fill;page.AutoScroll=true;page.BackColor=bg;content.Controls.Add(page);}
-  BuildDashboard();BuildApps();BuildTests();BuildDiscord();ShowPage(dashboard);host.TextChanged+=(s,e)=>InvalidateResults();port.ValueChanged+=(s,e)=>InvalidateResults();user.TextChanged+=(s,e)=>InvalidateResults();password.TextChanged+=(s,e)=>InvalidateResults();
+  BuildDashboard();BuildApps();BuildTests();BuildDiscord();ApplyReadableColors(this);ShowPage(dashboard);host.TextChanged+=(s,e)=>InvalidateResults();port.ValueChanged+=(s,e)=>InvalidateResults();user.TextChanged+=(s,e)=>InvalidateResults();password.TextChanged+=(s,e)=>InvalidateResults();
   if(!preview){var dp=DiscordProxy.Load();discordHost.Text=dp.Host;discordPort.Value=dp.Port>0&&dp.Port<=65535?dp.Port:1080;discordUser.Text=dp.User;discordPassword.Text=dp.Password;discordPath.Text=dp.DiscordPath;if(!File.Exists(discordPath.Text)){var found=AppDiscovery.Find(true);if(found.Length>0)discordPath.Text=found[0];}permanentConfigured=DiscordProxy.HasConfiguration;var saved=SessionStore.Load();if(saved!=null){proxyTls.Checked=saved.ProxyTls??true;tlsName.Text=saved.TlsName??"";socks.Checked=saved.Protocol!="HTTPS";https.Checked=saved.Protocol=="HTTPS"||saved.Protocol=="BOTH";host.Text=saved.Host??"";port.Value=saved.Port>0&&saved.Port<=65535?saved.Port:1080;user.Text=saved.User??"";password.Text=saved.Password();route=saved.Route??new RoutingOptions();route.Ipv6=false;udp.Checked=route.Udp;if(route.Apps==null)route.Apps=new System.Collections.Generic.List<RegisteredApp>();if(route.Apps.Count==0&&!String.IsNullOrWhiteSpace(saved.Game)&&File.Exists(saved.Game))route.Apps.Add(new RegisteredApp{Path=saved.Game});}global.Checked=route.Global;auto.Checked=route.AutoLaunch;RefreshApps();}
   LoadPickers();
   monitor.Interval=4000;monitor.Tick+=async(s,e)=>{if(!busy){RefreshState();if(active&&!checkingHealth&&(DateTime.UtcNow-lastHealth).TotalSeconds>=30)await CheckHealth();}};if(!preview)monitor.Start();
@@ -60,7 +60,7 @@ public class MainForm:Form
   settings.Controls.Add(Label("Porta",600,58,185,24,10,muted));port.SetBounds(600,87,185,32);port.Minimum=1;port.Maximum=65535;port.Value=1080;Style(port);settings.Controls.Add(port);
   global.Text="Modo global — todos os aplicativos";global.SetBounds(0,474,815,28);global.ForeColor=light;global.CheckedChanged+=(s,e)=>{route.Global=global.Checked;InvalidateResults();};dashboard.Controls.Add(global);
   auto.Text="Abrir o aplicativo escolhido após ativar e verificar o túnel";auto.SetBounds(0,511,815,28);auto.CheckedChanged+=(s,e)=>route.AutoLaunch=auto.Checked;dashboard.Controls.Add(auto);
-  launch.SetBounds(0,550,815,32);launch.DropDownStyle=ComboBoxStyle.DropDownList;Style(launch);dashboard.Controls.Add(launch);
+  launch.SetBounds(0,550,815,32);launch.DropDownStyle=ComboBoxStyle.DropDownList;launch.FlatStyle=FlatStyle.Flat;Style(launch);launch.ForeColor=light;dashboard.Controls.Add(launch);
   connect=Button("Ativar proxy",0,602,252,true);connect.Click+=async(s,e)=>await ActivateProxy();dashboard.Controls.Add(connect);
   stop=Button("Parar túnel",277,602,252,false);stop.Click+=async(s,e)=>await Stop();dashboard.Controls.Add(stop);
   release=Button("Liberar rede direta",554,602,261,false);release.Click+=async(s,e)=>await Release();dashboard.Controls.Add(release);
@@ -109,7 +109,7 @@ public class MainForm:Form
  void AddProxyPicker(Panel settings,bool discord)
  {
   foreach(Control c in settings.Controls)if(c.Top>=50)c.Top+=60;settings.Height+=60;
-  var picker=new ProxyPicker(card,Color.White,new Font(UiFont(),10));settings.Controls.Add(picker);
+  var picker=new ProxyPicker(card,light,new Font(UiFont(),10));settings.Controls.Add(picker);
   if(discord)discordPicker=picker;else generalPicker=picker;
   picker.Changed+=()=>PickerChanged(discord);picker.ImportRequested+=ImportProxies;
  }
@@ -252,7 +252,8 @@ public class MainForm:Form
  static string UiFont(){foreach(var f in FontFamily.Families)if(f.Name=="Segoe UI Variable Text")return f.Name;foreach(var f in FontFamily.Families)if(f.Name=="Bahnschrift")return f.Name;return "Segoe UI";}
  Label Label(string t,int x,int y,int w,int h,int size,Color color){return new Label{Text=t,Left=x,Top=y,Width=w,Height=h,ForeColor=color,Font=new Font(UiFont(),size)};}
  Panel Card(int x,int y,int w,int h,params Control[] children){var p=new Panel{Left=x,Top=y,Width=w,Height=h,BackColor=card};p.Controls.AddRange(children);return p;}
- Button Button(string text,int x,int y,int w,bool primary){var b=new Button{Text=text,Left=x,Top=y,Width=w,Height=42,BackColor=primary?blue:card,ForeColor=Color.White,FlatStyle=FlatStyle.Flat,Cursor=Cursors.Hand,Font=new Font(UiFont(),10,FontStyle.Bold)};b.FlatAppearance.BorderColor=blue;b.FlatAppearance.BorderSize=primary?0:1;return b;}
+ Button Button(string text,int x,int y,int w,bool primary){var b=new ReadableButton{Text=text,Left=x,Top=y,Width=w,Height=42,BackColor=primary?blue:card,ForeColor=Color.White,FlatStyle=FlatStyle.Flat,Cursor=Cursors.Hand,Font=new Font(UiFont(),10,FontStyle.Bold)};b.FlatAppearance.BorderColor=blue;b.FlatAppearance.BorderSize=primary?0:1;return b;}
+ void ApplyReadableColors(Control parent){foreach(Control c in parent.Controls){if(c is CheckBox||c is RadioButton)c.ForeColor=light;ApplyReadableColors(c);}}
  void Style(Control c){c.BackColor=bg;c.ForeColor=Color.White;c.Font=new Font(UiFont(),11);}
  void Field(Panel p,string title,TextBox input,int x,int y,int width){p.Controls.Add(Label(title,x,y,width,25,10,muted));input.SetBounds(x,y+29,width,32);Style(input);p.Controls.Add(input);}
 }

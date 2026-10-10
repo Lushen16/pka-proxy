@@ -1,12 +1,12 @@
 using System;using System.Collections.Generic;using System.Windows.Forms;using System.Drawing;
 public sealed class ProxyPicker:Panel
 {
- public RadioButton Manual=new RadioButton(),Automatic=new RadioButton();public ComboBox Options=new ComboBox();public Button Import=new Button();public event Action Changed;public event Action ImportRequested;bool loading;
+ public RadioButton Manual=new RadioButton(),Automatic=new RadioButton();public ComboBox Options=new ComboBox();public Button Import=new ReadableButton();public event Action Changed;public event Action ImportRequested;bool loading;
  public ProxyPicker(Color background,Color foreground,Font font)
  {
   SetBounds(20,48,775,36);BackColor=background;ForeColor=foreground;Font=font;
   Manual.Text="Proxy manual";Manual.SetBounds(0,2,150,30);Manual.Checked=true;Automatic.Text="Proxy automática";Automatic.SetBounds(150,2,165,30);
-  Options.SetBounds(315,2,320,30);Options.DropDownStyle=ComboBoxStyle.DropDownList;Options.BackColor=background;Options.ForeColor=foreground;
+  Options.SetBounds(315,2,320,30);Options.FlatStyle=FlatStyle.Flat;Options.DropDownStyle=ComboBoxStyle.DropDownList;Options.DrawMode=DrawMode.OwnerDrawFixed;Options.DrawItem+=(s,e)=>{if(e.Index<0)return;using(var brush=new SolidBrush(background))e.Graphics.FillRectangle(brush,e.Bounds);TextRenderer.DrawText(e.Graphics,Options.Items[e.Index].ToString(),Font,e.Bounds,foreground,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);if((e.State&DrawItemState.Focus)!=0)e.DrawFocusRectangle();};Options.BackColor=background;Options.ForeColor=foreground;
   Import.Text="Importar lista";Import.SetBounds(645,0,130,34);Import.FlatStyle=FlatStyle.Flat;Import.FlatAppearance.BorderColor=Color.FromArgb(37,119,255);Import.BackColor=background;Import.ForeColor=foreground;
   Controls.AddRange(new Control[]{Manual,Automatic,Options,Import});
   Manual.CheckedChanged+=(s,e)=>{if(Manual.Checked)Notify();};Automatic.CheckedChanged+=(s,e)=>{if(Automatic.Checked)Notify();};Options.SelectedIndexChanged+=(s,e)=>Notify();Import.Click+=(s,e)=>{if(ImportRequested!=null)ImportRequested();};

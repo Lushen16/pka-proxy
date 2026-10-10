@@ -1,19 +1,21 @@
-# PKAproxy 1.3.0.0 — correção de ativação
+# PKA Proxy Launcher V2.0.1
 
-O modo Global anteriormente só gerava uma configuração. Agora Conectar / aplicar instala o ProxiFyre oficial 2.6.1 (SHA-256 fixado), seus pré-requisitos pelo instalador oficial e aplica a configuração no serviço elevado ProxiFyreService. Desconectar interrompe esse serviço. Não altera o proxy WinINET do Windows.
+Atualização automática ao abrir: consulta Releases estáveis, valida assinatura RSA e SHA-256, instala com backup e reinicia. Leia [ATUALIZACOES.md](launcher-v2/ATUALIZACOES.md). É necessário instalar o novo executável uma vez para habilitar o mecanismo.
 
-Na VM:
-1. Instale PKAproxy-Setup.exe por cima da versão atual.
-2. Preencha a proxy e abra Roteamento > Global.
-3. Clique em Conectar / aplicar. Permita a elevação e conclua o instalador oficial do ProxiFyre. Se ele pedir reinicialização, reinicie a VM e clique em Conectar novamente.
-4. Espere o teste automático ou clique em Verificar Global. Um processo independente consulta HTTPS e compara o IP com a saída SOCKS5 esperada.
-5. Feche completamente e reabra o navegador. Conexões existentes precisam ser renovadas.
-6. Desconectar restaura o tráfego direto ao parar o serviço. Fechar PKAproxy mantém o serviço ativo; use Desconectar antes de sair se desejar rede normal.
+A V2 está em [launcher-v2](launcher-v2/LEIA-ME.md): interface em preto, azul e azul-claro, Dashboard, Aplicativos, Teste, seleção por caminho do executável, SOCKS5 real, abertura automática e filtros persistentes WFP para bloquear saída fora do túnel.
 
-O PKAproxy permanece em %APPDATA%\PKAproxy. O motor e driver devem ser instalados em diretórios protegidos do Windows; não ficam em AppData. A senha de roteamento fica no app-config.json do motor, com acesso limitado a Administradores e SYSTEM. A sessão do aplicativo e o pedido entre processos usam DPAPI.
+**Candidato para validação:** compilação e 54 verificações automatizadas passaram; configurações global e por aplicativo foram aceitas pelo sing-box real. A ativação administrativa do WFP, roteamento no Windows e testes de queda do motor/Webshare precisam de validação em VM. Consulte [a lista de testes pendentes](launcher-v2/VALIDACAO-VM.md). Não é uma release aprovada nem uma promessa de ausência de vazamentos.
 
-Check proxy confirma apenas uma conexão SOCKS5 explícita. Verificar Global usa PKArouteProbe.exe separado e confirma HTTPS/TCP; não valida todo o tráfego, UDP, DNS, IPv6 ou o jogo. O motor encaminha apenas os protocolos configurados e identificados. UDP exige suporte da proxy; fragmentos UDP IPv6 podem passar diretamente. Não há kill switch. A comparação por IP não garante exclusividade se sua rede direta e sua proxy tiverem a mesma saída.
+TCP/IPv4 é encaminhado; UDP/IPv6 de alvos protegidos são bloqueados. O modo por aplicativo não inclui automaticamente processos auxiliares ou serviços compartilhados. O motor e a interface são exceções explícitas. Parar ou fechar mantém o bloqueio persistente; use Liberar rede direta ou Recuperar-rede.cmd para recuperação.
 
-Testes de configuração, SOCKS5, assinatura de atualização, instalação extraída e consulta independente foram feitos. Não instalamos o driver nem testamos roteamento real neste computador: o usuário pediu somente preparar para a VM. Esta versão precisa de validação na VM antes de declarar o Global operacional ali.
+```powershell
+cd launcher-v2
+.\build.ps1
+.\test.ps1
+```
 
-Fontes oficiais: https://github.com/wiresock/proxifyre/releases/tag/v2.6.1 e https://github.com/wiresock/proxifyre/blob/main/docs/configuration.md
+O build usa .NET Framework e o motor sing-box 1.14.2 fixado no pacote. As credenciais não devem ser adicionadas ao repositório. Perfil e pedidos usam DPAPI; a configuração ativa do motor fica em diretório administrativo protegido.
+
+![Dashboard](launcher-v2/Dashboard.png)
+
+A implementação anterior permanece nos arquivos da raiz, com documentação em [README-1.3.md](README-1.3.md). Para a V2, use os scripts da pasta launcher-v2; os scripts antigos da raiz não geram esta versão. Nenhuma release anterior é substituída automaticamente.

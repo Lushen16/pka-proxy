@@ -1,7 +1,7 @@
 using System;using System.Text;using System.Text.RegularExpressions;
 public sealed class RegisteredApp { public string Path=""; public bool Selected=true; public override string ToString(){return System.IO.Path.GetFileNameWithoutExtension(Path)+"  |  "+Path;} }
 public sealed class RoutingOptions {
- public bool Global,Udp,Ipv6,AutoLaunch;public string ClientPath="",LauncherPath="";
+ public bool Global,Udp,Ipv6,AutoLaunch,DirectDiscordCalls;public string ClientPath="",LauncherPath="";
  public System.Collections.Generic.List<RegisteredApp> Apps=new System.Collections.Generic.List<RegisteredApp>();
  public RoutingOptions Copy(){var r=(RoutingOptions)MemberwiseClone();r.Apps=new System.Collections.Generic.List<RegisteredApp>();foreach(var a in Apps)r.Apps.Add(new RegisteredApp{Path=a.Path,Selected=a.Selected});return r;}
  public string[] SelectedPaths(){var p=new System.Collections.Generic.List<string>();foreach(var a in Apps)if(a.Selected){string path=System.IO.Path.GetFullPath(a.Path);if(!System.IO.File.Exists(path)||!path.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))throw new ArgumentException("Executável não encontrado: "+path);if(!p.Contains(path))p.Add(path);}if(!Global&&p.Count==0)throw new ArgumentException("Selecione ao menos um aplicativo.");return p.ToArray();}

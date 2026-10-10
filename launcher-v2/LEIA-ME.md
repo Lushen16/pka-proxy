@@ -1,4 +1,6 @@
-﻿# Litfix 2.0.10.0 — compilação local de teste
+﻿# Litfix 2.0.11.0 — compilação local de teste
+
+Proxy manual / automática nas abas Dashboard e Discord. No modo automático, escolha uma opção numerada para preencher IP, porta, usuário e senha. Cada aba lembra sua seleção; voltar ao modo manual restaura os dados digitados. Importar lista aceita IP:porta:usuário:senha, uma proxy por linha. O catálogo e as preferências são cifrados por usuário no computador e não são incluídos no instalador público ou no código-fonte. Não há rotação automática de IP durante uma sessão.
 
 Corrigida a falha de abertura ao carregar aplicativos selecionados de um perfil salvo. O teste test-startup.ps1 reproduziu o erro na 2.0.9 e confirmou abertura e seleção na versão corrigida.
 

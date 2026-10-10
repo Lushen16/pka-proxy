@@ -67,7 +67,7 @@ public static class UpdateInstaller
         }
         catch(Exception ex)
         {
-            MessageBox.Show("Atualização não concluída. A configuração foi preservada.\n"+ex.Message,"PKAproxy — Atualização");
+            MessageBox.Show("Atualização não concluída. A configuração foi preservada.\n"+ex.Message,"Litfix — Atualização");
             return 1;
         }
     }

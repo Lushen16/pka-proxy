@@ -15,10 +15,10 @@ public class MainForm:Form
  public MainForm()
  {
   preview=Array.IndexOf(Environment.GetCommandLineArgs(),"--preview")>=0;
-  Text="PKA Proxy Launcher "+UpdateService.Current;ClientSize=new Size(1080,760);MinimumSize=new Size(1096,799);StartPosition=FormStartPosition.CenterScreen;
-  BackColor=bg;ForeColor=Color.White;Font=new Font("Segoe UI",10);AutoScaleMode=AutoScaleMode.Dpi;
+  Text="Litfix "+UpdateService.Current;ClientSize=new Size(1080,760);MinimumSize=new Size(1096,799);StartPosition=FormStartPosition.CenterScreen;
+  Icon=Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);BackColor=bg;ForeColor=Color.White;Font=new Font("Segoe UI",10);AutoScaleMode=AutoScaleMode.Dpi;
   var sidebar=new Panel{Dock=DockStyle.Left,Width=205,BackColor=card};Controls.Add(sidebar);
-  sidebar.Controls.Add(Label("PKA",24,28,155,48,30,light));sidebar.Controls.Add(Label("PROXY LAUNCHER",25,82,165,25,10,Color.White));
+  sidebar.Controls.Add(Label("Litfix",24,28,155,48,30,light));sidebar.Controls.Add(Label("PROXY LAUNCHER",25,82,165,25,10,Color.White));
   string[] names={"Dashboard","Aplicativos","Teste"};Panel[] pages={dashboard,applicationPage,testPage};
   for(int i=0;i<3;i++){Panel page=pages[i];var b=Button(names[i],20,153+i*56,165,false);b.Click+=(s,e)=>ShowPage(page);sidebar.Controls.Add(b);}
   updateState=Label("Atualização automática\nLushen16/pka-proxy",24,370,165,115,9,light);sidebar.Controls.Add(updateState);
@@ -109,7 +109,7 @@ public class MainForm:Form
  void RefreshApps(){apps.Items.Clear();foreach(var a in route.Apps)apps.Items.Add(a,a.Selected);RefreshLaunch();}
  void RefreshLaunch(){string previous=launch.SelectedItem==null?null:((RegisteredApp)launch.SelectedItem).Path;launch.Items.Clear();foreach(var a in route.Apps)if(a.Selected)launch.Items.Add(a);for(int i=0;i<launch.Items.Count;i++)if(((RegisteredApp)launch.Items[i]).Path==previous)launch.SelectedIndex=i;if(launch.SelectedIndex<0&&launch.Items.Count>0)launch.SelectedIndex=0;}
  void Save(){if(preview)return;try{SessionStore.Save("",host.Text.Trim(),(int)port.Value,user.Text,password.Text,route);}catch{Log("Não foi possível salvar o perfil protegido.");}}
- void Error(Exception ex){string text=ex is AggregateException?"Falha de conexão TCP com o proxy.":ex.Message;Log("ERRO: "+text);MessageBox.Show(this,text,"PKA Proxy Launcher",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+ void Error(Exception ex){string text=ex is AggregateException?"Falha de conexão TCP com o proxy.":ex.Message;Log("ERRO: "+text);MessageBox.Show(this,text,"Litfix",MessageBoxButtons.OK,MessageBoxIcon.Error);}
  void Log(string value){if(user.Text.Length>0)value=value.Replace(user.Text,"[usuario]");if(password.Text.Length>0)value=value.Replace(password.Text,"[senha]");if(logs.TextLength>24000)logs.Clear();logs.AppendText(DateTime.Now.ToString("HH:mm:ss")+"  "+value+Environment.NewLine);}
  void ShowPage(Panel page){foreach(Control child in content.Controls)child.Visible=child==page;page.BringToFront();}
  public void PreviewPage(string name){ShowPage(name=="apps"?applicationPage:name=="tests"?testPage:dashboard);}

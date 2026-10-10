@@ -5,7 +5,7 @@ $registry='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\'+$id
 if(Test-Path $registry){throw 'Já existe uma instalação registrada. Use uma VM limpa para este teste.'}
 $destination=[IO.Path]::GetFullPath($TestDirectory)
 if(Test-Path $destination){throw 'O diretório de teste deve ser novo.'}
-$setup=Join-Path $PSScriptRoot 'PKA-Proxy-Setup-2.0.3.0.exe'
+$setup=Join-Path $PSScriptRoot 'Litfix-Setup-2.0.4.0.exe'
 $group='PKA Test '+[Guid]::NewGuid().ToString('N')
 $arguments=@('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=""',('/DIR="'+$destination+'"'),('/GROUP="'+$group+'"'))
 function RunSetup { $p=Start-Process $setup -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru; if($p.ExitCode -ne 0){throw ('Instalação falhou: '+$p.ExitCode)} }
@@ -15,7 +15,7 @@ if((Get-FileHash $target).Hash -ne (Get-FileHash (Join-Path $PSScriptRoot 'PKA-P
 & (Join-Path $PSScriptRoot 'Verificar-assinatura.ps1') -ExePath $target
 if(!(Test-Path $registry)){throw 'Desinstalação não registrada'}
 $installedGroup=(Get-ItemProperty $registry).'Inno Setup: Icon Group'
-$shortcut=Join-Path ([Environment]::GetFolderPath('Programs')) ($installedGroup+'\PKA Proxy Launcher.lnk')
+$shortcut=Join-Path ([Environment]::GetFolderPath('Programs')) ($installedGroup+'\Litfix.lnk')
 if(!(Test-Path $shortcut)){throw 'Atalho não criado'}
 $shell=New-Object -ComObject WScript.Shell
 if($shell.CreateShortcut($shortcut).TargetPath -ne $target){throw 'Destino do atalho incorreto'}

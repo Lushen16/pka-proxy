@@ -1,7 +1,7 @@
 [Setup]
 AppId={{94CB85DC-2356-4C38-904B-38BC51226FB3}
 AppName=Litfix
-AppVersion=2.0.4.0
+AppVersion=2.0.5.0
 AppPublisher=Lushen16
 AppPublisherURL=https://github.com/Lushen16/LIT-fix
 DefaultDirName={localappdata}\Programs\Litfix
@@ -12,9 +12,9 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..
-OutputBaseFilename=Litfix-Setup-2.0.4.0
+OutputBaseFilename=Litfix-Setup-2.0.5.0
 SetupIconFile=..\PKAproxy.ico
-UninstallDisplayIcon={app}\PKA-Proxy.exe
+UninstallDisplayIcon={app}\Litfix-brand-2.0.5.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -30,6 +30,7 @@ Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortugue
 Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDescription: "Atalhos:"; Flags: unchecked
 
 [Files]
+Source: "..\PKAproxy.ico"; DestDir: "{app}"; DestName: "Litfix-brand-2.0.5.ico"; Flags: ignoreversion
 Source: "..\PKA-Proxy.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\PKA-Proxy.exe.sig"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\Verificar-assinatura.ps1"; DestDir: "{app}"; Flags: ignoreversion
@@ -45,10 +46,10 @@ Source: "..\licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recurse
 Source: "..\upstream\*"; DestDir: "{app}\upstream"; Flags: ignoreversion recursesubdirs
 
 [Icons]
-Name: "{group}\Litfix"; Filename: "{app}\PKA-Proxy.exe"
-Name: "{group}\Recuperar rede (executar como administrador)"; Filename: "{app}\Recuperar-rede.cmd"
-Name: "{group}\Desinstalar Litfix"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\Litfix"; Filename: "{app}\PKA-Proxy.exe"; Tasks: desktopicon
+Name: "{group}\Litfix"; Filename: "{app}\PKA-Proxy.exe"; IconFilename: "{app}\Litfix-brand-2.0.5.ico"; AppUserModelID: "Lushen16.Litfix"
+Name: "{group}\Recuperar rede (executar como administrador)"; Filename: "{app}\Recuperar-rede.cmd"; IconFilename: "{app}\Litfix-brand-2.0.5.ico"
+Name: "{group}\Desinstalar Litfix"; Filename: "{uninstallexe}"; IconFilename: "{app}\Litfix-brand-2.0.5.ico"
+Name: "{autodesktop}\Litfix"; Filename: "{app}\PKA-Proxy.exe"; IconFilename: "{app}\Litfix-brand-2.0.5.ico"; AppUserModelID: "Lushen16.Litfix"; Tasks: desktopicon
 
 [InstallDelete]
 Type: files; Name: "{userprograms}\PKA Proxy Launcher\PKA Proxy Launcher.lnk"

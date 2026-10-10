@@ -13,7 +13,7 @@ Não usamos um empacotador que prometa criptografar o executável durante sua ex
 
 ## Conferir um download
 
-Baixe PKA-Proxy.exe, PKA-Proxy.exe.sig e Verificar-assinatura.ps1 da Release oficial no repositório Lushen16/pka-proxy. Coloque os três na mesma pasta e execute:
+Baixe PKA-Proxy.exe, PKA-Proxy.exe.sig e Verificar-assinatura.ps1 da Release oficial no repositório Lushen16/LIT-fix. Coloque os três na mesma pasta e execute:
 
 ```powershell
 .\Verificar-assinatura.ps1

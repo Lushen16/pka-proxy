@@ -11,7 +11,7 @@ class UpdaterTests
   if(args.Length>0&&args[0]=="--apply-update")return UpdateInstaller.Apply(args);
   if(args.Length==2&&args[0]=="--parent"){
    string folder=Path.GetFullPath(args[1]);var manifest=UpdateService.VerifyManifest(File.ReadAllBytes(Path.Combine(folder,"update.json")),File.ReadAllBytes(Path.Combine(folder,"update.sig")),UpdateTrust.PublicKey);
-   UpdateInstaller.Start(new PendingUpdate{Repository="Lushen16/pka-proxy",Folder=folder,Manifest=manifest});return 0;
+   UpdateInstaller.Start(new PendingUpdate{Repository="Lushen16/LIT-fix",Folder=folder,Manifest=manifest});return 0;
   }
   string stage=Path.GetFullPath(args[0]);byte[] data=File.ReadAllBytes(Path.Combine(stage,"update.json")),signature=File.ReadAllBytes(Path.Combine(stage,"update.sig"));
   var m=UpdateService.VerifyManifest(data,signature,UpdateTrust.PublicKey);Assert(m.version=="2.0.2.0","valid signature accepted");UpdateService.VerifyFile(Path.Combine(stage,"PKA-Proxy.exe"),m);count++;
@@ -19,7 +19,7 @@ class UpdaterTests
   string source=Path.Combine(stage,"PKA-Proxy.exe"),bad=Path.Combine(stage,"bad.exe");byte[] binary=File.ReadAllBytes(source);binary[binary.Length-1]^=1;File.WriteAllBytes(bad,binary);Reject(()=>UpdateService.VerifyFile(bad,m),"same-size corrupted download rejected");File.WriteAllText(bad,"truncated");Reject(()=>UpdateService.VerifyFile(bad,m),"truncated download rejected");
   string oldVersion=m.version;m.version="2.0.3.0";Reject(()=>UpdateService.VerifyFile(source,m),"binary version mismatch rejected");m.version=oldVersion;
   string original=Path.Combine(stage,"old.bin"),next=Path.Combine(stage,"new.bin"),profile=Path.Combine(stage,"profile.bin");File.WriteAllText(original,"OLD");File.WriteAllText(next,"NEW");File.WriteAllText(profile,"PROFILE");string backup=UpdateInstaller.ReplaceBinary(next,original);Assert(File.ReadAllText(original)=="NEW","atomic replacement");Assert(File.ReadAllText(backup)=="OLD","previous version backed up");Assert(File.ReadAllText(profile)=="PROFILE","profile preserved");UpdateInstaller.ReplaceBinary(backup,original);Assert(File.ReadAllText(original)=="OLD","rollback replacement works");
-  Assert(UpdateService.Repository("https://github.com/Lushen16/pka-proxy/")=="Lushen16/pka-proxy","repository normalized");bool invalid=false;try{UpdateService.Repository("../bad");}catch(ArgumentException){invalid=true;}Assert(invalid,"repository traversal refused");
+  Assert(UpdateService.Repository("https://github.com/Lushen16/LIT-fix/")=="Lushen16/LIT-fix","repository normalized");bool invalid=false;try{UpdateService.Repository("../bad");}catch(ArgumentException){invalid=true;}Assert(invalid,"repository traversal refused");
   Assert(Choose(true,Release("v2.0.2.0",false,true,true))=="v2.0.2.0","published prerelease discovered");
   Assert(Choose(false,Release("v2.0.2.0",false,true,true))==null,"stable channel excludes prerelease");
   Assert(Choose(true,Release("v9.0.0.0",true,true,true))==null,"draft ignored");

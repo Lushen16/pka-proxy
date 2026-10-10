@@ -2,7 +2,7 @@ Canal das versões de teste (desde 2.0.3.0): ao abrir, consulta até 100 release
 
 # Atualizações automáticas — V2.0.1.0
 
-Ao abrir normalmente, o PKA consulta as Releases estáveis de Lushen16/pka-proxy, verifica a assinatura RSA do manifesto e, quando encontra uma versão mais recente, baixa, valida, instala e reinicia sem confirmação adicional. Não consulta commits da branch nem compila código baixado. Não instala drafts ou prereleases.
+Ao abrir normalmente, o PKA consulta as Releases estáveis de Lushen16/LIT-fix, verifica a assinatura RSA do manifesto e, quando encontra uma versão mais recente, baixa, valida, instala e reinicia sem confirmação adicional. Não consulta commits da branch nem compila código baixado. Não instala drafts ou prereleases.
 
 Uma vez, substitua a versão anterior pelo novo PKA-Proxy.exe entregue. A V2.0.0 não contém este mecanismo, portanto não consegue instalar esta primeira atualização automaticamente.
 

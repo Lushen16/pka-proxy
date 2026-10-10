@@ -57,7 +57,7 @@ public sealed class UpdatePreferences
     {
         return new UpdatePreferences
         {
-            Repository="Lushen16/pka-proxy",CheckOnStartup=true
+            Repository="Lushen16/LIT-fix",CheckOnStartup=true
         };
     }
     public void Save()

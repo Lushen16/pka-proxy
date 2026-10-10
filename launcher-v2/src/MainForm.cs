@@ -21,7 +21,7 @@ public class MainForm:Form
   sidebar.Controls.Add(Label("Litfix",24,28,155,48,30,light));sidebar.Controls.Add(Label("PROXY LAUNCHER",25,82,165,25,10,Color.White));
   string[] names={"Dashboard","Aplicativos","Teste"};Panel[] pages={dashboard,applicationPage,testPage};
   for(int i=0;i<3;i++){Panel page=pages[i];var b=Button(names[i],20,153+i*56,165,false);b.Click+=(s,e)=>ShowPage(page);sidebar.Controls.Add(b);}
-  updateState=Label("Atualização automática\nLushen16/pka-proxy",24,370,165,115,9,light);sidebar.Controls.Add(updateState);
+  updateState=Label("Atualização automática\nLushen16/LIT-fix",24,370,165,115,9,light);sidebar.Controls.Add(updateState);
   sidebar.Controls.Add(Label("V"+UpdateService.Current+"  •  WINDOWS x64\nSOCKS5 / WEBSHARE\n\nTCP protegido\nUDP e IPv6 bloqueados",24,544,165,130,9,muted));
   content.SetBounds(225,20,835,720);content.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right;Controls.Add(content);
   foreach(Panel page in pages){page.Dock=DockStyle.Fill;page.AutoScroll=true;page.BackColor=bg;content.Controls.Add(page);}
@@ -37,7 +37,7 @@ public class MainForm:Form
   if(active){updateState.Text="Atualização adiada\nHá um motor ativo.";Log("Atualização será verificada na próxima abertura sem túnel ativo.");return;}
   SetBusy(true);updateState.Text="Buscando atualização…";
   try{
-   var update=await Task.Run(()=>UpdateService.Check("Lushen16/pka-proxy"));
+   var update=await Task.Run(()=>UpdateService.Check("Lushen16/LIT-fix"));
    if(update==null){updateState.Text="Versão atualizada\nV"+UpdateService.Current;return;}
    updateState.Text="Baixando V"+update.Manifest.version+"…";Log("Nova versão assinada: "+update.Manifest.version);
    await Task.Run(()=>UpdateService.Fetch(update));

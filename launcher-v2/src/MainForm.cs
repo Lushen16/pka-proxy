@@ -82,7 +82,7 @@ public class MainForm:Form
   discordBrowse=Button("Localizar Discord",600,253,185,false);discordBrowse.Click+=(sender,e)=>{using(var picker=new OpenFileDialog{Filter="Discord (Discord.exe)|Discord.exe",CheckFileExists=true})if(picker.ShowDialog(this)==DialogResult.OK)discordPath.Text=picker.FileName;};settings.Controls.Add(discordBrowse);
   discordTest=Button("Testar proxy",0,546,250,false);discordTest.Click+=async(sender,e)=>await TestDiscord();discordPage.Controls.Add(discordTest);
   discordEnable=Button("Ativar permanente",277,546,250,true);discordEnable.Click+=async(sender,e)=>await EnableDiscord();discordPage.Controls.Add(discordEnable);
-  discordRemove=Button("Remover configuração",554,546,261,false);discordRemove.Click+=async(sender,e)=>await RemoveDiscord();discordPage.Controls.Add(discordRemove);
+  discordRemove=Button("Remover configuração",554,546,261,false);discordRemove.BackColor=Color.FromArgb(183,35,55);discordRemove.ForeColor=Color.White;discordRemove.FlatAppearance.BorderColor=Color.FromArgb(245,82,104);discordRemove.Click+=async(sender,e)=>await RemoveDiscord();discordPage.Controls.Add(discordRemove);
   discordPage.Controls.Add(Label("Inicia ao entrar no Windows e reconecta em segundo plano. Feche o Discord antes de ativar.\nA configuração permanece até removê-la\nou desinstalar o Litfix. O túnel geral e o modo permanente usam o mesmo motor.",0,612,815,92,10,muted));
   AddProxyPicker(settings,true);foreach(Control c in discordPage.Controls)if(c.Top>=546)c.Top+=60;
  }

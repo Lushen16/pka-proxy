@@ -22,7 +22,7 @@ Mantenha o PKA numa pasta gravável pela sua conta. O updater testa acesso de es
 .\prepare-release.ps1 -PrivateKeyPath 'CAMINHO-LOCAL-DA-CHAVE.xml'
 ```
 
-4. Publique uma Release estável na tag exata informada pelo script, por exemplo v2.0.2.0, com os três arquivos gerados em release/: PKA-Proxy.exe, update.json e update.sig. Marque-a como latest. Só publique como estável depois de concluir a validação do aplicativo.
+4. Além dos três arquivos obrigatórios do updater, o script gera PKA-Proxy.exe.sig, PUBLIC-KEY.xml e PUBLIC-KEY-SHA256.txt para verificação independente. Inclua também Verificar-assinatura.ps1. Consulte SEGURANCA.md. Publique uma Release estável na tag exata informada pelo script, por exemplo v2.0.2.0, com os três arquivos gerados em release/: PKA-Proxy.exe, update.json e update.sig. Marque-a como latest. Só publique como estável depois de concluir a validação do aplicativo.
 
 O cliente verifica `releases/latest/download/update.json` e `update.sig`, mas o executável é baixado da tag da versão assinada para evitar a troca de versão durante o download. O manifesto limita tamanho, nome, SHA-256 e versão do assembly. A chave pública existente do projeto permanece no executável; uma alteração do repositório não é suficiente para produzir um pacote válido sem a chave privada.
 

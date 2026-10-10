@@ -2,6 +2,8 @@
 
 Atualização automática ao abrir: consulta Releases estáveis, valida assinatura RSA e SHA-256, instala com backup e reinicia. Leia [ATUALIZACOES.md](launcher-v2/ATUALIZACOES.md). É necessário instalar o novo executável uma vez para habilitar o mecanismo.
 
+Assinatura do executável: RSA-3072/SHA-256, com verificador público e chave privada protegida por DPAPI. Consulte [SEGURANCA.md](launcher-v2/SEGURANCA.md). Esta é uma assinatura destacada; certificado Authenticode reconhecido pelo Windows ainda não está disponível.
+
 A V2 está em [launcher-v2](launcher-v2/LEIA-ME.md): interface em preto, azul e azul-claro, Dashboard, Aplicativos, Teste, seleção por caminho do executável, SOCKS5 real, abertura automática e filtros persistentes WFP para bloquear saída fora do túnel.
 
 **Candidato para validação:** compilação e 54 verificações automatizadas passaram; configurações global e por aplicativo foram aceitas pelo sing-box real. A ativação administrativa do WFP, roteamento no Windows e testes de queda do motor/Webshare precisam de validação em VM. Consulte [a lista de testes pendentes](launcher-v2/VALIDACAO-VM.md). Não é uma release aprovada nem uma promessa de ausência de vazamentos.

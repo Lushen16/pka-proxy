@@ -6,3 +6,11 @@ session*.json
 session*.bin
 engine-*
 *.ready
+
+*.dpapi
+*.pfx
+*.p12
+*.snk
+CHAVE-PRIVADA*
+*private-key*
+release/

@@ -47,7 +47,7 @@ Em PowerShell, dentro desta pasta:
 .\test-update.ps1
 ```
 
-O build usa o compilador C# do .NET Framework instalado no Windows e gera aplicação e helper x64. `core.gz` contém o sing-box fixado; sua integridade é conferida antes de execução. O processo de teste é incorporado ao binário. Não há instalador novo nem assinatura Authenticode neste candidato.
+O build usa o compilador C# do .NET Framework instalado no Windows e gera aplicação e helper x64. `core.gz` contém o sing-box fixado; sua integridade é conferida antes de execução. O processo de teste é incorporado ao binário. Não há instalador novo nem certificado Authenticode neste candidato. O executável tem assinatura RSA destacada verificável em PKA-Proxy.exe.sig; consulte SEGURANCA.md.
 
 `test.ps1` não altera firewall ou rotas e não usa credenciais reais. Executa servidores SOCKS5 em loopback e verifica autenticação, respostas fragmentadas/inválidas, destino com DNS remoto, configuração de ambos os modos, rejeição de UDP/IPv6, cópia das seleções, perfil criptografado e estruturas nativas x64. Consulte `VALIDACAO-VM.md` para testes que ainda faltam.
 

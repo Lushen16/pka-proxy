@@ -1,4 +1,4 @@
-﻿using System;using System.Collections.Generic;using System.Net;using System.Web.Script.Serialization;
+using System;using System.Collections.Generic;using System.Net;using System.Web.Script.Serialization;
 public static class TunConfiguration
 {
  static Dictionary<string,object> Map(params object[] p){var d=new Dictionary<string,object>();for(int i=0;i<p.Length;i+=2)d[(string)p[i]]=p[i+1];return d;}
@@ -15,8 +15,9 @@ public static class TunConfiguration
   rules.Add(Map("port",53,"action","hijack-dns"));
   rules.Add(Map("process_path",new[]{r.OwnerPath??System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName},"action","route","outbound","direct"));
   var processes=r.PermanentDiscord?Map("type","logical","mode","or","rules",new[]{Map("process_path",targets.ToArray()),Map("process_name",new[]{"Discord.exe"})}):Map("process_path",targets.ToArray());
-  if(r.PermanentDiscord&&(https||!r.Route.Udp||r.Route.Global))throw new ArgumentException("O modo permanente Discord exige SOCKS5, UDP e seleção por aplicativo.");
+  if(r.PermanentDiscord&&(https||r.Route.Udp||r.Route.Global))throw new ArgumentException("O modo permanente Discord exige SOCKS5 TCP e seleção por aplicativo.");
   if(!r.Route.Global)rules.Add(Map("type","logical","mode","and","rules",new[]{processes,Map("network",r.Route.Udp?new[]{"tcp","udp"}:new[]{"tcp"}),Map("ip_version",4)},"action","route","outbound","proxy"));
+  if(r.PermanentDiscord)rules.Add(Map("type","logical","mode","and","rules",new[]{processes,Map("network",new[]{"udp"}),Map("ip_version",4)},"action","route","outbound","direct"));
   if(!r.Route.Global){var reject=new Dictionary<string,object>(processes);reject["action"]="reject";rules.Add(reject);}
   if(r.Route.Global){rules.Add(Map("ip_version",6,"action","reject"));rules.Add(Map("network",r.Route.Udp?new[]{"icmp"}:new[]{"udp","icmp"},"action","reject"));}
   var proxy=Map("type",https?"http":"socks","tag","proxy","server",r.Host,"server_port",r.Port);if(https&&r.ProxyTls)proxy["tls"]=Map("enabled",true,"server_name",String.IsNullOrWhiteSpace(r.TlsName)?r.Host:r.TlsName);else if(!https)proxy["version"]="5";if(r.User.Length>0){proxy["username"]=r.User;proxy["password"]=r.Password;}

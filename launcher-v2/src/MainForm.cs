@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Drawing;
 using System.Diagnostics;
@@ -74,24 +74,24 @@ public class MainForm:Form
   discordPage.Controls.Add(Label("Uma proxy exclusiva, mesmo com o Litfix fechado.",0,59,810,30,10,muted));
   discordState=Label("Sem proxy permanente",20,18,770,38,14,light);discordPage.Controls.Add(Card(0,100,815,70,discordState));
   var settings=new Panel{Left=0,Top=190,Width=815,Height=330,BackColor=card};discordPage.Controls.Add(settings);
-  settings.Controls.Add(Label("SOCKS5  /  TCP + UDP",20,15,770,28,10,light));
+  settings.Controls.Add(Label("SOCKS5",20,15,770,28,10,light));
   Field(settings,"IPv4 da proxy",discordHost,20,58,550);
   settings.Controls.Add(Label("Porta",600,58,185,24,10,muted));discordPort.SetBounds(600,87,185,32);discordPort.Minimum=1;discordPort.Maximum=65535;discordPort.Value=1080;Style(discordPort);settings.Controls.Add(discordPort);
   Field(settings,"Usuário",discordUser,20,142,350);Field(settings,"Senha",discordPassword,400,142,385);discordPassword.UseSystemPasswordChar=true;
   Field(settings,"Discord.exe",discordPath,20,224,550);discordPath.ReadOnly=true;
   discordBrowse=Button("Localizar Discord",600,253,185,false);discordBrowse.Click+=(sender,e)=>{using(var picker=new OpenFileDialog{Filter="Discord (Discord.exe)|Discord.exe",CheckFileExists=true})if(picker.ShowDialog(this)==DialogResult.OK)discordPath.Text=picker.FileName;};settings.Controls.Add(discordBrowse);
-  discordTest=Button("Testar proxy e UDP",0,546,250,false);discordTest.Click+=async(sender,e)=>await TestDiscord();discordPage.Controls.Add(discordTest);
+  discordTest=Button("Testar proxy",0,546,250,false);discordTest.Click+=async(sender,e)=>await TestDiscord();discordPage.Controls.Add(discordTest);
   discordEnable=Button("Ativar permanente",277,546,250,true);discordEnable.Click+=async(sender,e)=>await EnableDiscord();discordPage.Controls.Add(discordEnable);
   discordRemove=Button("Remover configuração",554,546,261,false);discordRemove.Click+=async(sender,e)=>await RemoveDiscord();discordPage.Controls.Add(discordRemove);
-  discordPage.Controls.Add(Label("Inicia ao entrar no Windows e reconecta em segundo plano. Feche o Discord antes de ativar.\nA proxy precisa aceitar UDP para chamadas. A configuração permanece até removê-la\nou desinstalar o Litfix. O túnel geral e o modo permanente usam o mesmo motor.",0,612,815,92,10,muted));
+  discordPage.Controls.Add(Label("Inicia ao entrar no Windows e reconecta em segundo plano. Feche o Discord antes de ativar.\nA configuração permanece até removê-la\nou desinstalar o Litfix. O túnel geral e o modo permanente usam o mesmo motor.",0,612,815,92,10,muted));
   AddProxyPicker(settings,true);foreach(Control c in discordPage.Controls)if(c.Top>=546)c.Top+=60;
  }
  DiscordProfile DiscordSettings(){return new DiscordProfile{Host=discordHost.Text.Trim(),Port=(int)discordPort.Value,User=discordUser.Text,Password=discordPassword.Text,DiscordPath=discordPath.Text};}
  async Task TestDiscord()
  {
-  if(busy)return;SetBusy(true);try{var profile=DiscordSettings();DiscordProxy.Validate(profile);discordState.Text="Testando autenticação e UDP…";
-   string ip=await Task.Run(()=>{string result=ProxyDiagnostics.ProxyIp(profile.Host,profile.Port,profile.User,profile.Password);ProxyDiagnostics.CheckUdp(profile.Host,profile.Port,profile.User,profile.Password,"SOCKS5");return result;});discordState.Text="TCP + UDP OK • IP de saída: "+ip;
-  }catch(Exception ex){discordState.Text="Proxy não confirmou TCP / UDP";Error(ex);}finally{SetBusy(false);}
+  if(busy)return;SetBusy(true);try{var profile=DiscordSettings();DiscordProxy.Validate(profile);discordState.Text="Testando autenticação…";
+   string ip=await Task.Run(()=>{string result=ProxyDiagnostics.ProxyIp(profile.Host,profile.Port,profile.User,profile.Password);return result;});discordState.Text="Proxy OK • IP de saída: "+ip;
+  }catch(Exception ex){discordState.Text="Proxy não confirmou conexão";Error(ex);}finally{SetBusy(false);}
  }
  async Task EnableDiscord()
  {

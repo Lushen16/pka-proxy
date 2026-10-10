@@ -1,7 +1,7 @@
-﻿[Setup]
+[Setup]
 AppId={{94CB85DC-2356-4C38-904B-38BC51226FB3}
 AppName=Litfix
-AppVersion=2.0.11.0
+AppVersion=2.0.12.0
 AppPublisher=Lushen16
 AppPublisherURL=https://github.com/Lushen16/LIT-fix
 DefaultDirName={localappdata}\Programs\Litfix
@@ -12,7 +12,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..
-OutputBaseFilename=Litfix-Setup-2.0.11.0
+OutputBaseFilename=Litfix-Setup-2.0.12.0
 SetupIconFile=..\PKAproxy.ico
 UninstallDisplayIcon={app}\Litfix-brand-2.0.5.ico
 Compression=lzma2

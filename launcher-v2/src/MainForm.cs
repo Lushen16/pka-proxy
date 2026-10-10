@@ -8,8 +8,8 @@ public class MainForm:Form
 {
  readonly Color bg=Color.FromArgb(7,12,20),card=Color.FromArgb(16,27,43),blue=Color.FromArgb(37,119,255),light=Color.FromArgb(119,207,255),muted=Color.FromArgb(159,179,205);
  TextBox host=new TextBox(),user=new TextBox(),password=new TextBox(),logs=new TextBox(); NumericUpDown port=new NumericUpDown();
- CheckBox global=new CheckBox(),auto=new CheckBox();CheckedListBox apps=new CheckedListBox();ComboBox launch=new ComboBox();CheckBox socks=new CheckBox(),https=new CheckBox(),udp=new CheckBox(),proxyTls=new CheckBox();TextBox tlsName=new TextBox();ListView appResults=new ListView();string tunnelIp="",activeProtocol="";
- TextBox discordHost=new TextBox(),discordUser=new TextBox(),discordPassword=new TextBox(),discordPath=new TextBox();NumericUpDown discordPort=new NumericUpDown();Label discordState=new Label();Button discordEnable,discordRemove,discordTest,discordBrowse;bool permanentConfigured;
+ CheckBox global=new ReadableCheckBox(),auto=new ReadableCheckBox();CheckedListBox apps=new CheckedListBox();ComboBox launch=new ComboBox();CheckBox socks=new ReadableCheckBox(),https=new ReadableCheckBox(),udp=new ReadableCheckBox(),proxyTls=new ReadableCheckBox();TextBox tlsName=new TextBox();ListView appResults=new ListView();string tunnelIp="",activeProtocol="";
+ TextBox discordHost=new TextBox(),discordUser=new TextBox(),discordPassword=new TextBox(),discordPath=new TextBox();NumericUpDown discordPort=new NumericUpDown();Label discordState=new Label();Button discordEnable,discordRemove,discordTest,discordBrowse;bool permanentConfigured,discordRunning;
  ProxyPicker generalPicker,discordPicker;System.Collections.Generic.List<ProxyPreset> presets=new System.Collections.Generic.List<ProxyPreset>();ProxyPreset generalManual,discordManual;bool loadingPickers=true,generalWasAutomatic,discordWasAutomatic;
  Panel discordPage=new Panel(),dashboard=new Panel(),applicationPage=new Panel(),testPage=new Panel(),content=new Panel();
  Label state=new Label(),testState=new Label(),exitIp=new Label(),updateState=new Label();Button connect,stop,release,test,updateButton;PendingUpdate pendingUpdate;bool checkingUpdate;DateTime lastUpdateCheck=DateTime.MinValue;
@@ -88,7 +88,7 @@ public class MainForm:Form
   discordTest=Button("Testar proxy",0,546,250,false);discordTest.Click+=async(sender,e)=>await TestDiscord();discordPage.Controls.Add(discordTest);
   discordEnable=Button("Ativar permanente",277,546,250,true);discordEnable.Click+=async(sender,e)=>await EnableDiscord();discordPage.Controls.Add(discordEnable);
   discordRemove=Button("Remover configuração",554,546,261,false);discordRemove.BackColor=Color.FromArgb(183,35,55);discordRemove.ForeColor=Color.White;discordRemove.FlatAppearance.BorderColor=Color.FromArgb(245,82,104);discordRemove.Click+=async(sender,e)=>await RemoveDiscord();discordPage.Controls.Add(discordRemove);
-  discordPage.Controls.Add(Label("Inicia ao entrar no Windows e reconecta em segundo plano. Feche o Discord antes de ativar.\nA configuração permanece até removê-la\nou desinstalar o Litfix. O túnel geral e o modo permanente usam o mesmo motor.",0,612,815,92,10,muted));
+  discordPage.Controls.Add(Label("Inicia ao entrar no Windows e reconecta em segundo plano. Feche o Discord antes de ativar.\nA configuração permanece até removê-la\nou desinstalar o Litfix. Dashboard e Discord podem permanecer ativos juntos.",0,612,815,92,10,muted));
   AddProxyPicker(settings,true);foreach(Control c in discordPage.Controls)if(c.Top>=546)c.Top+=60;
  }
  DiscordProfile DiscordSettings(){return new DiscordProfile{Host=discordHost.Text.Trim(),Port=(int)discordPort.Value,User=discordUser.Text,Password=discordPassword.Text,DiscordPath=discordPath.Text};}
@@ -100,10 +100,10 @@ public class MainForm:Form
  }
  async Task EnableDiscord()
  {
-  if(busy)return;SetBusy(true);try{if(active||NetworkGuard.ArmedState==true)throw new InvalidOperationException("Pare o túnel geral e use Liberar rede direta antes de ativar o Discord permanente.");
+  if(busy)return;SetBusy(true);EngineRequest resume=null;try{if(active){EnsureAppsClosed(route.SelectedPaths());resume=new EngineRequest{Protocol=activeProtocol.Length>0?activeProtocol:Selection(),ProxyTls=proxyTls.Checked,TlsName=tlsName.Text.Trim(),Route=route.Copy(),Host=host.Text.Trim(),Port=(int)port.Value,User=user.Text,Password=password.Text};await Task.Run(()=>EngineController.RunElevated(null,true));await Task.Run(()=>EngineController.ReleaseGuard());active=false;}else if(NetworkGuard.ArmedState==true)throw new InvalidOperationException("Use Liberar rede direta antes de ativar o Discord permanente.");
    var profile=DiscordSettings();DiscordProxy.Validate(profile);EnsureAppsClosed(new[]{profile.DiscordPath});DiscordProxy.Save(profile);discordState.Text="Configurando início automático… permita o aviso do Windows";
-   await Task.Run(()=>DiscordProxy.Elevated(true));permanentConfigured=DiscordProxy.HasConfiguration;Log("Proxy permanente do Discord configurada. A janela pode ser fechada.");
-  }catch(Exception ex){permanentConfigured=DiscordProxy.HasConfiguration;Error(ex);}finally{SetBusy(false);RefreshState();}
+   await Task.Run(()=>DiscordProxy.Elevated(true));permanentConfigured=DiscordProxy.HasConfiguration;if(resume!=null)await Task.Run(()=>EngineController.RunElevated(resume,false));Log("Proxy permanente do Discord configurada. A janela pode ser fechada.");
+  }catch(Exception ex){permanentConfigured=DiscordProxy.HasConfiguration;if(resume!=null&&!permanentConfigured)Log("Dashboard parado durante a alteração; ative novamente.");Error(ex);}finally{SetBusy(false);RefreshState();}
  }
  async Task RemoveDiscord()
  {
@@ -192,12 +192,12 @@ public class MainForm:Form
  async Task ActivateProxy()
  {
   if(busy)return;SetBusy(true);try {
-   if(permanentConfigured||DiscordProxy.HasConfiguration)throw new InvalidOperationException("Remova a proxy permanente na aba Discord antes de ativar o túnel geral.");
+   permanentConfigured=DiscordProxy.HasConfiguration;
    if(active)throw new InvalidOperationException("Pare o túnel antes de alterar a configuração.");
-   if(NetworkGuard.ArmedState==true)throw new InvalidOperationException("O bloqueio anterior permanece ativo. Libere a rede direta antes de criar uma nova sessão.");
-   route.Global=global.Checked;route.AutoLaunch=auto.Checked;if(!route.Udp&&route.Apps.Exists(a=>a.Selected&&String.Equals(Path.GetFileName(a.Path),"Discord.exe",StringComparison.OrdinalIgnoreCase)))throw new InvalidOperationException("Marque Chamadas / UDP e use SOCKS5 com UDP para proteger o Discord. HTTPS CONNECT não transporta chamadas.");
+   if(NetworkGuard.ArmedState==true&&!permanentConfigured)throw new InvalidOperationException("O bloqueio anterior permanece ativo. Libere a rede direta antes de criar uma nova sessão.");
+   route.Global=global.Checked;route.AutoLaunch=auto.Checked;if(!permanentConfigured&&!route.Udp&&route.Apps.Exists(a=>a.Selected&&String.Equals(Path.GetFileName(a.Path),"Discord.exe",StringComparison.OrdinalIgnoreCase)))throw new InvalidOperationException("Marque Chamadas / UDP e use SOCKS5 com UDP para proteger o Discord. HTTPS CONNECT não transporta chamadas.");
    var request=new EngineRequest{Protocol=await ChooseProtocol(),ProxyTls=proxyTls.Checked,TlsName=tlsName.Text.Trim(),Route=route.Copy(),Host=host.Text.Trim(),Port=(int)port.Value,User=user.Text,Password=password.Text,OwnerPath=Process.GetCurrentProcess().MainModule.FileName};
-   TunConfiguration.Build(request);EnsureAppsClosed(request.Route.SelectedPaths());
+   TunConfiguration.Build(request);var closed=new System.Collections.Generic.List<string>(request.Route.SelectedPaths());if(permanentConfigured)closed.RemoveAll(p=>String.Equals(Path.GetFileName(p),"Discord.exe",StringComparison.OrdinalIgnoreCase));EnsureAppsClosed(closed.ToArray());
    string chosen=launch.SelectedItem==null?null:((RegisteredApp)launch.SelectedItem).Path;
    if(route.AutoLaunch&&chosen==null)throw new InvalidOperationException("Escolha um aplicativo marcado para abrir automaticamente.");
    Save();state.Text="Ativando e verificando… permita o aviso do Windows";activeProtocol=request.Protocol;tunnelIp="";RefreshAppResults();Log("Validando "+request.Protocol+" e instalando proteção persistente.");
@@ -205,7 +205,7 @@ public class MainForm:Form
    if(request.Route.AutoLaunch){GameLauncher.Open(chosen,"");Log("Aplicativo aberto: "+Path.GetFileName(chosen));}
   }catch(Exception ex){Error(ex);}finally{SetBusy(false);RefreshState();}
  }
- async Task Stop(){if(busy)return;SetBusy(true);try{sessionVersion++;tunnelIp="";RefreshAppResults();await Task.Run(()=>EngineController.RunElevated(null,true));Log("Túnel parado. Bloqueio de saída direta mantido.");}catch(Exception ex){Error(ex);}finally{SetBusy(false);RefreshState();}}
+ async Task Stop(){if(busy)return;SetBusy(true);try{sessionVersion++;tunnelIp="";RefreshAppResults();await Task.Run(()=>EngineController.RunElevated(null,true));Log(permanentConfigured?"Dashboard parado; Discord permanente mantido.":"Túnel parado. Bloqueio de saída direta mantido.");}catch(Exception ex){Error(ex);}finally{SetBusy(false);RefreshState();}}
  async Task Release(){if(busy)return;SetBusy(true);try{if(active)throw new InvalidOperationException("Pare o túnel antes de liberar a rede direta.");await Task.Run(()=>EngineController.ReleaseGuard());tunnelIp="";RefreshAppResults();Log("Bloqueio removido. A rede direta está liberada.");}catch(Exception ex){Error(ex);}finally{SetBusy(false);RefreshState();}}
  string Selection(){if(!socks.Checked&&!https.Checked)throw new ArgumentException("Marque SOCKS5, HTTPS ou ambas.");return socks.Checked?(https.Checked?"BOTH":"SOCKS5"):"HTTPS";}
  async Task<string> ChooseProtocol()
@@ -235,25 +235,41 @@ public class MainForm:Form
  void InvalidateResults(){if(active)return;tunnelIp="";if(appResults!=null)RefreshAppResults();if(exitIp!=null)exitIp.Text="IP público de saída: —";}
  void RefreshAppResults()
  {
-  appResults.Items.Clear();if(permanentConfigured){var row=new ListViewItem("Discord");row.SubItems.Add(tunnelIp.Length>0?tunnelIp:"—");row.SubItems.Add(tunnelIp.Length>0?"Túnel Discord OK; app não medido":"Aguardando teste do túnel Discord");row.ToolTipText="IP do processo de diagnóstico na rota permanente do Discord.";appResults.Items.Add(row);appResults.ShowItemToolTips=true;return;}foreach(var a in route.Apps){if(!route.Global&&!a.Selected)continue;
+  appResults.Items.Clear();if(permanentConfigured&&!active){var row=new ListViewItem("Discord");row.SubItems.Add(tunnelIp.Length>0?tunnelIp:"—");row.SubItems.Add(tunnelIp.Length>0?"Túnel Discord OK; app não medido":"Aguardando teste do túnel Discord");row.ToolTipText="IP do processo de diagnóstico na rota permanente do Discord.";appResults.Items.Add(row);appResults.ShowItemToolTips=true;return;}foreach(var a in route.Apps){if(!route.Global&&!a.Selected)continue;
    string status=tunnelIp.Length>0?"Túnel OK; app não medido / "+activeProtocol:"Aguardando teste do túnel";
    var item=new ListViewItem(Path.GetFileNameWithoutExtension(a.Path));item.SubItems.Add(tunnelIp.Length>0?tunnelIp:"—");item.SubItems.Add(status);item.ToolTipText="IP medido pelo processo de diagnóstico na mesma rota. O tráfego deste aplicativo não foi medido individualmente.";appResults.Items.Add(item);
   }
   appResults.ShowItemToolTips=true;
  }
 
- async Task TestTunnel(){if(busy)return;SetBusy(true);try{if(!active)throw new InvalidOperationException("Ative o túnel primeiro.");string ip=await Task.Run(()=>EngineController.RoutedIp());healthy=true;tunnelIp=ip;RefreshAppResults();testState.Text="IP do túnel verificado para a rota selecionada";exitIp.Text="IP público pelo túnel: "+ip;Log(testState.Text+" / "+ip);}catch(Exception ex){healthy=false;tunnelIp="";RefreshAppResults();testState.Text="Túnel não confirmado";exitIp.Text="IP público pelo túnel: indisponível";Error(ex);}finally{SetBusy(false);}}
+ async Task TestTunnel(){if(busy)return;SetBusy(true);try{if(!active&&!discordRunning)throw new InvalidOperationException("Ative o túnel primeiro.");string ip=await Task.Run(()=>EngineController.RoutedIp());healthy=true;tunnelIp=ip;RefreshAppResults();testState.Text="IP do túnel verificado para a rota selecionada";exitIp.Text="IP público pelo túnel: "+ip;Log(testState.Text+" / "+ip);}catch(Exception ex){healthy=false;tunnelIp="";RefreshAppResults();testState.Text="Túnel não confirmado";exitIp.Text="IP público pelo túnel: indisponível";Error(ex);}finally{SetBusy(false);}}
  async Task CheckHealth(){checkingHealth=true;lastHealth=DateTime.UtcNow;int version=sessionVersion;bool ok=false;try{await Task.Run(()=>EngineController.RoutedIp());ok=true;}catch{}finally{checkingHealth=false;}if(!IsDisposed&&active&&version==sessionVersion){if(healthy!=ok)Log(ok?"Conectividade do processo protegido restabelecida.":"Erro de conectividade do processo protegido. Sem fallback direto.");healthy=ok;RefreshState();}}
  void EnsureAppsClosed(string[] paths){foreach(string path in paths)foreach(Process p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(path))){using(p){try{if(String.Equals(p.MainModule.FileName,path,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Feche "+Path.GetFileName(path)+" antes de ativar.");}catch(System.ComponentModel.Win32Exception){throw new InvalidOperationException("Não foi possível verificar um processo aberto. Feche "+Path.GetFileName(path)+" antes de ativar.");}}}}
- void SetBusy(bool value){busy=value;updateButton.Enabled=pendingUpdate!=null&&!value&&!active&&!permanentConfigured;connect.Enabled=stop.Enabled=release.Enabled=!value&&!permanentConfigured;test.Enabled=!value;discordEnable.Enabled=!value&&!permanentConfigured;discordRemove.Enabled=!value&&permanentConfigured;discordTest.Enabled=!value;discordHost.Enabled=discordUser.Enabled=discordPassword.Enabled=discordPath.Enabled=discordPort.Enabled=discordBrowse.Enabled=!value&&!permanentConfigured;proxyTls.Enabled=tlsName.Enabled=socks.Enabled=https.Enabled=udp.Enabled=global.Enabled=auto.Enabled=host.Enabled=port.Enabled=user.Enabled=password.Enabled=launch.Enabled=!value&&!active;applicationPage.Enabled=!value;apps.Enabled=!value&&!active;foreach(Control c in applicationPage.Controls)if(c is Button&&c.Text!="Abrir pelo túnel")c.Enabled=!value&&!active;SetProxyEditing();}
- void RefreshState(){bool wasActive=active;active=!preview&&EngineController.Status().StartsWith("Motor ativo");bool? guarded=preview?(bool?)false:NetworkGuard.ArmedState;state.Text=active?(healthy?"Conectado • TCP / IPv4 • monitoramento HTTPS ativo":"Erro de conectividade • motor ativo • saída direta bloqueada"):!guarded.HasValue?"Proteção não consultada • ativação exigirá administrador":guarded.Value?"Túnel parado • saída direta bloqueada":"Desconectado • rede direta liberada";if(active&&EngineController.Mode()=="DISCORD")state.Text="Discord • proxy permanente ativa em segundo plano";discordState.Text=permanentConfigured?(active?"Proxy permanente configurada • motor ativo":"Proxy permanente configurada • aguardando reconexão"):"Sem proxy permanente";if(wasActive&&!active){tunnelIp="";RefreshAppResults();}if(wasActive&&!active)Log("Motor desconectado. A proteção persistente permanece ativa.");SetBusy(busy);}
+ void SetBusy(bool value){busy=value;updateButton.Enabled=pendingUpdate!=null&&!value&&!active&&!permanentConfigured;connect.Enabled=!value&&!active;stop.Enabled=!value&&active;release.Enabled=!value&&!active&&!permanentConfigured;ApplyActivationColors();test.Enabled=!value;discordEnable.Enabled=!value&&!permanentConfigured;discordRemove.Enabled=!value&&permanentConfigured&&!active;discordTest.Enabled=!value;discordHost.Enabled=discordUser.Enabled=discordPassword.Enabled=discordPath.Enabled=discordPort.Enabled=discordBrowse.Enabled=!value&&!permanentConfigured;proxyTls.Enabled=tlsName.Enabled=socks.Enabled=https.Enabled=udp.Enabled=global.Enabled=auto.Enabled=host.Enabled=port.Enabled=user.Enabled=password.Enabled=launch.Enabled=!value&&!active;applicationPage.Enabled=!value;apps.Enabled=!value&&!active;foreach(Control c in applicationPage.Controls)if(c is Button&&c.Text!="Abrir pelo túnel")c.Enabled=!value&&!active;SetProxyEditing();}
+ void SetDisabledColors(Control root,Color color){foreach(Control c in root.Controls){var check=c as ReadableCheckBox;if(check!=null)check.DisabledTextColor=color;var radio=c as ReadableRadioButton;if(radio!=null)radio.DisabledTextColor=color;SetDisabledColors(c,color);}}
+ void ApplyActivationColors()
+ {
+  Color green=Color.FromArgb(99,242,149),normal=Color.FromArgb(145,181,230);
+  SetDisabledColors(dashboard,active?green:light);SetDisabledColors(discordPage,discordRunning?green:light);
+  connect.Text=active?"Proxy ativada":"Ativar proxy";connect.ForeColor=active?green:Color.White;((ReadableButton)connect).DisabledTextColor=active?green:normal;
+  discordEnable.Text=discordRunning?"Permanente ativado":"Ativar permanente";discordEnable.ForeColor=discordRunning?green:Color.White;((ReadableButton)discordEnable).DisabledTextColor=discordRunning?green:normal;
+ }
+ void RefreshState()
+ {
+  bool wasActive=active;string mode=preview?"NONE":EngineController.Mode();active=mode=="NORMAL"||mode=="COMBINED";discordRunning=mode=="DISCORD"||mode=="COMBINED";
+  bool? guarded=preview?(bool?)false:NetworkGuard.ArmedState;
+  state.Text=active?(healthy?"Dashboard conectado":"Erro de conectividade • motor ativo"):discordRunning?"Dashboard disponível • Discord permanente ativo":!guarded.HasValue?"Proteção não consultada":guarded.Value?"Túnel parado • saída direta bloqueada":"Desconectado • rede direta liberada";
+  discordState.Text=permanentConfigured?(discordRunning?"Proxy permanente ativa":"Proxy permanente configurada • aguardando reconexão"):"Sem proxy permanente";
+  state.ForeColor=active?Color.FromArgb(99,242,149):light;discordState.ForeColor=discordRunning?Color.FromArgb(99,242,149):light;
+  if(wasActive&&!active){tunnelIp="";RefreshAppResults();}SetBusy(busy);
+ }
  void RefreshApps(){refreshingApps=true;try{tunnelIp="";RefreshAppResults();apps.Items.Clear();foreach(var a in route.Apps)apps.Items.Add(a,a.Selected);}finally{refreshingApps=false;}RefreshLaunch();}
  void RefreshLaunch(){string previous=launch.SelectedItem==null?null:((RegisteredApp)launch.SelectedItem).Path;launch.Items.Clear();foreach(var a in route.Apps)if(a.Selected)launch.Items.Add(a);for(int i=0;i<launch.Items.Count;i++)if(((RegisteredApp)launch.Items[i]).Path==previous)launch.SelectedIndex=i;if(launch.SelectedIndex<0&&launch.Items.Count>0)launch.SelectedIndex=0;}
  void Save(){if(preview)return;SavePickerState();try{SessionStore.Save("",host.Text.Trim(),(int)port.Value,user.Text,password.Text,route,Selection(),proxyTls.Checked,tlsName.Text.Trim());}catch{Log("Não foi possível salvar o perfil protegido.");}}
  void Error(Exception ex){string text=ex is AggregateException?"Falha de conexão TCP com o proxy.":ex.Message;Log("ERRO: "+text);MessageBox.Show(this,text,"Litfix",MessageBoxButtons.OK,MessageBoxIcon.Error);}
  void Log(string value){if(discordUser.Text.Length>0)value=value.Replace(discordUser.Text,"[usuario-discord]");if(discordPassword.Text.Length>0)value=value.Replace(discordPassword.Text,"[senha-discord]");if(user.Text.Length>0)value=value.Replace(user.Text,"[usuario]");if(password.Text.Length>0)value=value.Replace(password.Text,"[senha]");if(logs.TextLength>24000)logs.Clear();logs.AppendText(DateTime.Now.ToString("HH:mm:ss")+"  "+value+Environment.NewLine);}
  void ShowPage(Panel page){foreach(Control child in content.Controls)child.Visible=child==page;page.BringToFront();}
- public void PreviewPage(string name){if(name=="update")ShowPendingUpdate(new PendingUpdate{Manifest=new UpdateManifest{version="2.0.17.0"}});if(name=="tests"){route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\Discord.exe"});route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\PokeAlliance.exe"});RefreshAppResults();}ShowPage(name=="discord"?discordPage:name=="apps"?applicationPage:name=="tests"?testPage:dashboard);}
+ public void PreviewPage(string name){if(name=="active"){active=true;discordRunning=true;permanentConfigured=true;SetBusy(false);}if(name=="update")ShowPendingUpdate(new PendingUpdate{Manifest=new UpdateManifest{version="2.0.17.0"}});if(name=="tests"){route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\Discord.exe"});route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\PokeAlliance.exe"});RefreshAppResults();}ShowPage(name=="discord"?discordPage:name=="apps"?applicationPage:name=="tests"?testPage:dashboard);}
  static string UiFont(){foreach(var f in FontFamily.Families)if(f.Name=="Segoe UI Variable Text")return f.Name;foreach(var f in FontFamily.Families)if(f.Name=="Bahnschrift")return f.Name;return "Segoe UI";}
  Label Label(string t,int x,int y,int w,int h,int size,Color color){return new Label{Text=t,Left=x,Top=y,Width=w,Height=h,ForeColor=color,Font=new Font(UiFont(),size)};}
  Panel Card(int x,int y,int w,int h,params Control[] children){var p=new Panel{Left=x,Top=y,Width=w,Height=h,BackColor=card};p.Controls.AddRange(children);return p;}

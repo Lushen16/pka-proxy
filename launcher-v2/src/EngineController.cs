@@ -1,5 +1,5 @@
-﻿using System;using System.IO;using System.Text;using System.Diagnostics;using System.Security.Cryptography;using System.Security.Principal;using System.Web.Script.Serialization;using System.IO.Pipes;using System.Threading;
-public sealed class EngineRequest {public RoutingOptions Route;public string Host,User,Password,OwnerPath;public string Protocol="SOCKS5",TlsName="";public bool ProxyTls=true,PermanentDiscord;public int Port,OwnerPid;public long OwnerStart;}
+using System;using System.IO;using System.Text;using System.Diagnostics;using System.Security.Cryptography;using System.Security.Principal;using System.Web.Script.Serialization;using System.IO.Pipes;using System.Threading;
+public sealed class EngineRequest {public RoutingOptions Route;public string Host,User,Password,OwnerPath;public string Protocol="SOCKS5",TlsName="";public bool ProxyTls=true,PermanentDiscord;public int Port,OwnerPid;public long OwnerStart,DashboardStamp,DashboardOwnerStart;public int DashboardOwnerPid;public DiscordProfile DiscordOverlay;}
 public static class EngineController
 {
     public static string PipeName {get{return "PKAproxy-TUN-"+WindowsIdentity.GetCurrent().User.Value;}}
@@ -13,6 +13,7 @@ public static class EngineController
     {try {return Command("STATUS",150)=="RUNNING"?"Motor ativo • Global TUN":"Motor desconectado";}catch{return "Motor desconectado • rede normal";}}
     public static void RunElevated(EngineRequest request,bool stop)
     {
+        if(DiscordProxy.HasConfiguration){DiscordProxy.ChangeDashboard(request,stop);return;}
         if(stop){try {if(Command("STOP",1000)!="STOPPED")throw new IOException("O motor não confirmou a parada.");}catch(TimeoutException){if(Status().StartsWith("Motor ativo"))throw;}return;}
         if(Status().StartsWith("Motor ativo"))throw new InvalidOperationException("Desconecte antes de alterar a sessão.");
         request.OwnerPath=Process.GetCurrentProcess().MainModule.FileName;request.OwnerPid=Process.GetCurrentProcess().Id;request.OwnerStart=Process.GetCurrentProcess().StartTime.ToUniversalTime().Ticks;
@@ -48,7 +49,7 @@ public static class EngineController
     }
     public static string RoutedIp(bool insideEngine=false)
     {
-        if(!insideEngine&&Mode()=="DISCORD"){string value=Command("IP",25000);System.Net.IPAddress ip;if(!System.Net.IPAddress.TryParse(value,out ip))throw new IOException("O túnel Discord não confirmou o IP.");return ip.ToString();}
+        if(!insideEngine&&(Mode()=="DISCORD"||Mode()=="COMBINED")){string value=Command("IP",25000);System.Net.IPAddress ip;if(!System.Net.IPAddress.TryParse(value,out ip))throw new IOException("O túnel Discord não confirmou o IP.");return ip.ToString();}
         string root=Path.Combine(AppPaths.Root,"probe");Directory.CreateDirectory(root);
         string exe=Path.Combine(root,"PKArouteProbe.exe"),result=Path.Combine(root,Guid.NewGuid().ToString("N")+".txt");
         using(var s=System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("PKArouteProbe.exe"))using(var f=File.Create(exe))s.CopyTo(f);

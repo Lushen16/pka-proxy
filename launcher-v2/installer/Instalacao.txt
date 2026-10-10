@@ -1,4 +1,4 @@
-Litfix 2.0.16.0 — compilação local de teste
+Litfix 2.0.17.0 — compilação local de teste
 
 Windows 10/11 x64, .NET Framework 4.7.2 ou superior.
 Aba Discord: configuração independente, início ao entrar no Windows e limpeza na desinstalação.

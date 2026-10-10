@@ -1,10 +1,10 @@
-﻿using System;using System.IO;using System.Text;using System.Diagnostics;using System.Threading;using System.Security.Cryptography;using System.Security.Principal;using System.Security.AccessControl;using System.IO.Pipes;using System.ServiceProcess;using System.Web.Script.Serialization;using System.Runtime.InteropServices;
+using System;using System.IO;using System.Text;using System.Diagnostics;using System.Threading;using System.Security.Cryptography;using System.Security.Principal;using System.Security.AccessControl;using System.IO.Pipes;using System.ServiceProcess;using System.Web.Script.Serialization;using System.Runtime.InteropServices;
 public static class TunRuntime
 {
     const string CoreHash="7BBEF1DEA9189EE12799AE834EA4B4658355DA25C47A21AD8804904C0CCD9410";
-    static string log;static string user="",password="";static readonly object logLock=new object();
+    static string log;static string user="",password="",discordUser="",discordPassword="";static readonly object logLock=new object();
     static void Log(string value)
-    {if(value==null)return;if(user.Length>0)value=value.Replace(user,"[usuario]");if(password.Length>0)value=value.Replace(password,"[senha]");lock(logLock){try {if(File.Exists(log)&&new FileInfo(log).Length>262144)File.WriteAllText(log,"");File.AppendAllText(log,value+Environment.NewLine);}catch{}}}
+    {if(value==null)return;if(user.Length>0)value=value.Replace(user,"[usuario]");if(password.Length>0)value=value.Replace(password,"[senha]");if(discordUser.Length>0)value=value.Replace(discordUser,"[usuario-discord]");if(discordPassword.Length>0)value=value.Replace(discordPassword,"[senha-discord]");lock(logLock){try {if(File.Exists(log)&&new FileInfo(log).Length>262144)File.WriteAllText(log,"");File.AppendAllText(log,value+Environment.NewLine);}catch{}}}
     static void ProtectDirectory(string path)
     {
         if(Directory.Exists(path)&&(File.GetAttributes(path)&FileAttributes.ReparsePoint)!=0)throw new IOException("Pasta do motor não pode ser um link.");
@@ -68,7 +68,7 @@ public static class TunRuntime
             requestPath=Path.GetFullPath(args[1]);string prefix=Path.GetFullPath(AppPaths.Root)+Path.DirectorySeparatorChar;
             if(!requestPath.StartsWith(prefix,StringComparison.OrdinalIgnoreCase)||!Path.GetFileName(requestPath).StartsWith("engine-")||new FileInfo(requestPath).Length>65536)throw new ArgumentException("Pedido de conexão inválido.");
             var request=new JavaScriptSerializer().Deserialize<EngineRequest>(Encoding.UTF8.GetString(ProtectedData.Unprotect(File.ReadAllBytes(requestPath),null,DataProtectionScope.CurrentUser)));
-            user=request.User;password=request.Password;
+            user=request.User;password=request.Password;discordUser=request.DiscordOverlay==null?"":request.DiscordOverlay.User;discordPassword=request.DiscordOverlay==null?"":request.DiscordOverlay.Password;
             singleton=new Mutex(false,@"Global\PKAproxy-TUN");try{owns=singleton.WaitOne(0);}catch(AbandonedMutexException){owns=true;}
             if(!owns)throw new InvalidOperationException("Já existe um motor Global ativo. Desconecte a outra instância.");
             if(NetworkGuard.ArmedState==null||(NetworkGuard.IsArmed&&!(request.PermanentDiscord&&DiscordProxy.OwnsGuard)))throw new InvalidOperationException("Proteção anterior instalada ou estado indisponível. Libere explicitamente a rede antes de ativar outra sessão.");
@@ -93,19 +93,19 @@ public static class TunRuntime
             EngineController.RoutedIp(true);
             var access=new PipeSecurity();access.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().User,PipeAccessRights.FullControl,AccessControlType.Allow));
             bool first=true,stop=false;DateTime lastDiscordScan=DateTime.UtcNow;
-            while(!core.HasExited&&OwnerAlive(request)&&!stop&&!(request.PermanentDiscord&&DiscordProxy.StopRequested))
+            while(!core.HasExited&&OwnerAlive(request)&&!stop&&!(request.PermanentDiscord&&(DiscordProxy.StopRequested||DiscordProxy.DashboardRevision!=request.DashboardStamp)))
             {
                 using(var pipe=new NamedPipeServerStream(EngineController.PipeName,PipeDirection.InOut,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous,4096,4096,access))
                 {
                     var pending=pipe.BeginWaitForConnection(null,null);
                     if(first){if(!File.Exists(requestPath))throw new IOException("Conexão cancelada.");File.WriteAllText(requestPath+".ready","OK");first=false;}
-                    while(!pending.AsyncWaitHandle.WaitOne(300)){if(core.HasExited||!OwnerAlive(request)||(request.PermanentDiscord&&DiscordProxy.StopRequested)){stop=true;break;}if(request.PermanentDiscord&&(DateTime.UtcNow-lastDiscordScan).TotalSeconds>=15){lastDiscordScan=DateTime.UtcNow;bool changed=false;foreach(string app in DiscordProxy.InstalledDiscordPaths(request.Route.Apps[0].Path))if(!request.Route.Apps.Exists(a=>String.Equals(a.Path,app,StringComparison.OrdinalIgnoreCase))){request.Route.Apps.Add(new RegisteredApp{Path=app});changed=true;}if(changed)NetworkGuard.Apply(request,exe,probe,true);}}
+                    while(!pending.AsyncWaitHandle.WaitOne(300)){if(request.DiscordOverlay!=null&&!DiscordProxy.DashboardOwnerAlive(request))DiscordProxy.ClearDashboard();if(core.HasExited||!OwnerAlive(request)||(request.PermanentDiscord&&(DiscordProxy.StopRequested||DiscordProxy.DashboardRevision!=request.DashboardStamp))){stop=true;break;}if(request.PermanentDiscord&&(DateTime.UtcNow-lastDiscordScan).TotalSeconds>=15){lastDiscordScan=DateTime.UtcNow;bool changed=false;foreach(string app in DiscordProxy.InstalledDiscordPaths(request.DiscordOverlay!=null?request.DiscordOverlay.DiscordPath:request.Route.Apps[0].Path))if(!request.Route.Apps.Exists(a=>String.Equals(a.Path,app,StringComparison.OrdinalIgnoreCase))){request.Route.Apps.Add(new RegisteredApp{Path=app});changed=true;}if(changed)NetworkGuard.Apply(request,exe,probe,true);}}
                     if(stop)break;pipe.EndWaitForConnection(pending);
                     using(var reader=new StreamReader(pipe,Encoding.UTF8,false,1024,true))using(var writer=new StreamWriter(pipe,Encoding.UTF8,1024,true))
                     {
                         writer.AutoFlush=true;var read=reader.ReadLineAsync();if(!read.Wait(2000))continue;
                         if(read.Result=="STOP"){StopCore(core);writer.WriteLine("STOPPED");stop=true;}
-                        else if(read.Result=="MODE")writer.WriteLine(request.PermanentDiscord?"DISCORD":"NORMAL");
+                        else if(read.Result=="MODE")writer.WriteLine(request.DiscordOverlay!=null?"COMBINED":request.PermanentDiscord?"DISCORD":"NORMAL");
                         else if(read.Result=="IP"){try{writer.WriteLine(EngineController.RoutedIp(true));}catch{writer.WriteLine("FAILED");}}
                         else writer.WriteLine(read.Result=="STATUS"&&!core.HasExited?"RUNNING":"UNKNOWN");
                     }

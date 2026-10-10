@@ -1,7 +1,7 @@
 using System;using System.Collections.Generic;using System.Windows.Forms;using System.Drawing;
 public sealed class ProxyPicker:Panel
 {
- public RadioButton Manual=new RadioButton(),Automatic=new RadioButton();public ComboBox Options=new ComboBox();public Button Import=new ReadableButton();public event Action Changed;public event Action ImportRequested;bool loading;
+ public RadioButton Manual=new ReadableRadioButton(),Automatic=new ReadableRadioButton();public ComboBox Options=new ComboBox();public Button Import=new ReadableButton();public event Action Changed;public event Action ImportRequested;bool loading;
  public ProxyPicker(Color background,Color foreground,Font font)
  {
   SetBounds(20,48,775,36);BackColor=background;ForeColor=foreground;Font=font;

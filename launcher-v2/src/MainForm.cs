@@ -66,12 +66,24 @@ public class MainForm:Form
  void BuildApps()
  {
   applicationPage.Controls.Add(Label("Aplicativos",0,4,800,48,24,Color.White));applicationPage.Controls.Add(Label("Cadastre os executáveis e marque os que devem usar a proxy.",0,59,800,30,10,muted));
-  apps.SetBounds(0,115,815,345);apps.CheckOnClick=true;apps.BackColor=card;apps.ForeColor=Color.White;apps.BorderStyle=BorderStyle.None;apps.HorizontalScrollbar=true;applicationPage.Controls.Add(apps);
+  var discord=Button("Adicionar Discord",0,108,250,true);discord.Click+=(s,e)=>AddDetected(true);applicationPage.Controls.Add(discord);
+  var pka=Button("Adicionar PKA",277,108,250,true);pka.Click+=(s,e)=>AddDetected(false);applicationPage.Controls.Add(pka);
+  apps.SetBounds(0,170,815,290);apps.CheckOnClick=true;apps.BackColor=card;apps.ForeColor=Color.White;apps.BorderStyle=BorderStyle.None;apps.HorizontalScrollbar=true;applicationPage.Controls.Add(apps);
   apps.ItemCheck+=(s,e)=>{if(e.Index<route.Apps.Count)route.Apps[e.Index].Selected=e.NewValue==CheckState.Checked;BeginInvoke(new System.Action(RefreshLaunch));};
   var add=Button("Adicionar .exe",0,483,250,true);add.Click+=(s,e)=>{using(var picker=new OpenFileDialog{Filter="Executáveis Windows (*.exe)|*.exe",Multiselect=true,CheckFileExists=true})if(picker.ShowDialog(this)==DialogResult.OK){foreach(string p in picker.FileNames){string path=Path.GetFullPath(p);if(!route.Apps.Exists(a=>String.Equals(a.Path,path,StringComparison.OrdinalIgnoreCase)))route.Apps.Add(new RegisteredApp{Path=path});}RefreshApps();Save();}};applicationPage.Controls.Add(add);
   var remove=Button("Remover selecionado",277,483,250,false);remove.Click+=(s,e)=>{if(apps.SelectedIndex>=0){route.Apps.RemoveAt(apps.SelectedIndex);RefreshApps();Save();}};applicationPage.Controls.Add(remove);
   var open=Button("Abrir pelo túnel",554,483,261,false);open.Click+=(s,e)=>{try{if(!active||busy)throw new InvalidOperationException("Ative o túnel primeiro.");if(apps.SelectedIndex<0)throw new InvalidOperationException("Escolha um aplicativo na lista.");var a=route.Apps[apps.SelectedIndex];if(!route.Global&&!a.Selected)throw new InvalidOperationException("Marque este aplicativo e reconecte antes de abrir.");GameLauncher.Open(a.Path,"");Log("Aplicativo aberto: "+Path.GetFileName(a.Path));}catch(Exception ex){Error(ex);}};applicationPage.Controls.Add(open);
   applicationPage.Controls.Add(Label("Cadastre também os .exe auxiliares e o cliente final aberto por um launcher.\nFeche os apps antes de ativar: conexões já existentes não são migradas.\nPor aplicativo, os demais processos continuam diretos; DNS na porta 53 usa o túnel.\nA seleção não se estende automaticamente a processos filhos ou serviços compartilhados.",0,554,815,110,10,muted));
+ }
+ void AddDetected(bool discord)
+ {
+  try{
+   if(active||busy)throw new InvalidOperationException("Pare o túnel antes de alterar os aplicativos protegidos.");
+   string[] paths=AppDiscovery.Find(discord);
+   if(paths.Length==0)throw new InvalidOperationException((discord?"Discord":"PokeAlliance")+" não encontrado nos caminhos padrão. Instale o aplicativo ou use Adicionar .exe.");
+   foreach(string path in paths){var app=route.Apps.Find(a=>String.Equals(a.Path,path,StringComparison.OrdinalIgnoreCase));if(app==null)route.Apps.Add(new RegisteredApp{Path=path,Selected=true});else app.Selected=true;}
+   RefreshApps();Save();Log((discord?"Discord":"PokeAlliance")+": "+paths.Length+" executável(is) localizado(s) e marcado(s). Feche o aplicativo e ative o túnel antes de abrir.");
+  }catch(Exception ex){Error(ex);}
  }
  void BuildTests()
  {

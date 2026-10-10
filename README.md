@@ -1,23 +1,40 @@
-# PKA Proxy Launcher V2.0.1
+# LIT-fix
 
-Atualização automática ao abrir: consulta Releases estáveis, valida assinatura RSA e SHA-256, instala com backup e reinicia. Leia [ATUALIZACOES.md](launcher-v2/ATUALIZACOES.md). É necessário instalar o novo executável uma vez para habilitar o mecanismo.
+Ferramentas para diagnosticar e corrigir problemas no Windows, em aplicativos e na conexão. Projeto em evolução.
 
-Assinatura do executável: RSA-3072/SHA-256, com verificador público e chave privada protegida por DPAPI. Consulte [SEGURANCA.md](launcher-v2/SEGURANCA.md). Esta é uma assinatura destacada; certificado Authenticode reconhecido pelo Windows ainda não está disponível.
+O LIT-fix nasceu como um launcher de proxy e está ampliando sua proposta para reunir diagnósticos e correções em um só aplicativo. O objetivo é ajudar a identificar a causa de um problema, explicar a ação sugerida e aplicar correções específicas. Não promete resolver qualquer erro automaticamente.
 
-A V2 está em [launcher-v2](launcher-v2/LEIA-ME.md): interface em preto, azul e azul-claro, Dashboard, Aplicativos, Teste, seleção por caminho do executável, SOCKS5 real, abertura automática e filtros persistentes WFP para bloquear saída fora do túnel.
+## O que existe hoje
 
-**Candidato para validação:** compilação e 54 verificações automatizadas passaram; configurações global e por aplicativo foram aceitas pelo sing-box real. A ativação administrativa do WFP, roteamento no Windows e testes de queda do motor/Webshare precisam de validação em VM. Consulte [a lista de testes pendentes](launcher-v2/VALIDACAO-VM.md). Não é uma release aprovada nem uma promessa de ausência de vazamentos.
+A versão de teste atual inclui:
 
-TCP/IPv4 é encaminhado; UDP/IPv6 de alvos protegidos são bloqueados. O modo por aplicativo não inclui automaticamente processos auxiliares ou serviços compartilhados. O motor e a interface são exceções explícitas. Parar ou fechar mantém o bloqueio persistente; use Liberar rede direta ou Recuperar-rede.cmd para recuperação.
+- Interface com Dashboard, Aplicativos e Teste.
+- Cadastro de executáveis e conexão por proxy SOCKS5, com modo global ou por aplicativo.
+- Testes de conectividade, autenticação e IP público de saída, com diagnóstico e logs.
+- Instalador Windows, atalhos e desinstalação.
+- Atualização automática com validação de assinatura nas versões 2.0.3 e posteriores, incluindo versões de teste publicadas.
+- Proteção das credenciais com DPAPI e assinatura RSA dos arquivos publicados.
 
-```powershell
-cd launcher-v2
-.\build.ps1
-.\test.ps1
-```
+Os recursos gerais de correção do Windows e de outros aplicativos ainda serão desenvolvidos. A mudança de proposta não significa que eles já estejam disponíveis.
 
-O build usa .NET Framework e o motor sing-box 1.14.2 fixado no pacote. As credenciais não devem ser adicionadas ao repositório. Perfil e pedidos usam DPAPI; a configuração ativa do motor fica em diretório administrativo protegido.
+## Baixar e instalar
 
-![Dashboard](launcher-v2/Dashboard.png)
+Baixe o instalador na página de [versões publicadas](https://github.com/Lushen16/LIT-fix/releases). As versões atuais são de teste para Windows 10/11 x64 com .NET Framework 4.7.2 ou superior.
 
-A implementação anterior permanece nos arquivos da raiz, com documentação em [README-1.3.md](README-1.3.md). Para a V2, use os scripts da pasta launcher-v2; os scripts antigos da raiz não geram esta versão. Nenhuma release anterior é substituída automaticamente.
+Antes de substituir uma instalação com proxy ativo, pare o túnel, clique em **Liberar rede direta** e feche o aplicativo. Versões anteriores à 2.0.3 precisam de uma instalação manual para receber a correção do atualizador.
+
+## Estado do projeto
+
+O módulo de proxy ainda exige validação de roteamento e proteção de rede em uma máquina virtual. O erro 12007 relatado no Shiba Launcher ainda não está confirmado como resolvido.
+
+O módulo atual encaminha TCP/IPv4; UDP e IPv6 dos aplicativos protegidos são bloqueados. Parar ou fechar o aplicativo mantém o bloqueio de saída direta. Para retornar à conexão normal, use **Liberar rede direta** ou o procedimento de recuperação documentado.
+
+A assinatura RSA detecta adulteração dos arquivos, mas não substitui um certificado Authenticode reconhecido pelo Windows. O instalador pode aparecer como editor desconhecido.
+
+## Desenvolvimento
+
+O código da versão atual está na branch [codex/pka-launcher-v2](https://github.com/Lushen16/LIT-fix/tree/codex/pka-launcher-v2), na pasta `launcher-v2`. O código legado da raiz corresponde à implementação anterior.
+
+Consulte a [documentação do módulo atual](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/LEIA-ME.md), as [orientações de segurança](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/SEGURANCA.md) e os [testes de rede pendentes](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/VALIDACAO-VM.md).
+
+Não adicione credenciais de proxy, chaves privadas ou certificados de assinatura ao repositório.

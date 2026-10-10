@@ -1,7 +1,7 @@
 [Setup]
 AppId={{94CB85DC-2356-4C38-904B-38BC51226FB3}
 AppName=PKA Proxy Launcher
-AppVersion=2.0.1.0
+AppVersion=2.0.2.0
 AppPublisher=Lushen16
 AppPublisherURL=https://github.com/Lushen16/pka-proxy
 DefaultDirName={localappdata}\Programs\PKA Proxy Launcher
@@ -11,7 +11,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..
-OutputBaseFilename=PKA-Proxy-Setup-2.0.1.0
+OutputBaseFilename=PKA-Proxy-Setup-2.0.2.0
 SetupIconFile=..\PKAproxy.ico
 UninstallDisplayIcon={app}\PKA-Proxy.exe
 Compression=lzma2

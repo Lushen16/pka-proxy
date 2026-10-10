@@ -31,6 +31,23 @@ public static class TunRuntime
     [DllImport("kernel32.dll")]static extern bool FreeConsole();
     [DllImport("kernel32.dll")]static extern bool SetConsoleCtrlHandler(IntPtr handler,bool add);
     [DllImport("kernel32.dll")]static extern bool GenerateConsoleCtrlEvent(uint code,uint group);
+    [DllImport("kernel32.dll",SetLastError=true)]static extern bool AllocConsole();
+    [DllImport("kernel32.dll")]static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")]static extern bool ShowWindow(IntPtr window,int command);
+    static void StartHiddenCore(Process core)
+    {
+        // Keep a real console for graceful CTRL+C shutdown, but do not display it.
+        // WindowStyle alone is not sufficient for console children launched without a shell.
+        if(!AllocConsole())throw new IOException("Não foi possível preparar o motor em segundo plano.");
+        try
+        {
+            IntPtr window=GetConsoleWindow();
+            if(window==IntPtr.Zero)throw new IOException("Console do motor indisponível.");
+            ShowWindow(window,0);
+            core.Start();
+        }
+        finally {FreeConsole();}
+    }
     static void StopCore(Process core)
     {
         if(core==null||core.HasExited)return;
@@ -67,7 +84,7 @@ public static class TunRuntime
             using(var resource=System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("PKArouteProbe.exe"))using(var target=File.Create(probe))resource.CopyTo(target);
             NetworkGuard.Apply(request,exe,probe,false);
             core=new Process {StartInfo=new ProcessStartInfo(exe,"run -c \""+config+"\""){UseShellExecute=false,CreateNoWindow=false,WindowStyle=ProcessWindowStyle.Hidden,RedirectStandardError=true,RedirectStandardOutput=true},EnableRaisingEvents=true};
-            job=new TunJob();core.ErrorDataReceived+=(s,e)=>Log(e.Data);core.OutputDataReceived+=(s,e)=>Log(e.Data);core.Start();job.Assign(core);core.BeginErrorReadLine();core.BeginOutputReadLine();
+            job=new TunJob();core.ErrorDataReceived+=(s,e)=>Log(e.Data);core.OutputDataReceived+=(s,e)=>Log(e.Data);StartHiddenCore(core);job.Assign(core);core.BeginErrorReadLine();core.BeginOutputReadLine();
             if(core.WaitForExit(3500))throw new IOException("Motor não iniciou. Abra Diagnóstico para ver o motivo.");
             NetworkGuard.Apply(request,exe,probe,true);
             // Probe is included in both the routing policy and persistent guard.

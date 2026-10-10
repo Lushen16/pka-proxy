@@ -1,19 +1,40 @@
-# PKAproxy 1.3.0.0 — correção de ativação
+# LIT-fix
 
-O modo Global anteriormente só gerava uma configuração. Agora Conectar / aplicar instala o ProxiFyre oficial 2.6.1 (SHA-256 fixado), seus pré-requisitos pelo instalador oficial e aplica a configuração no serviço elevado ProxiFyreService. Desconectar interrompe esse serviço. Não altera o proxy WinINET do Windows.
+Ferramentas para diagnosticar e corrigir problemas no Windows, em aplicativos e na conexão. Projeto em evolução.
 
-Na VM:
-1. Instale PKAproxy-Setup.exe por cima da versão atual.
-2. Preencha a proxy e abra Roteamento > Global.
-3. Clique em Conectar / aplicar. Permita a elevação e conclua o instalador oficial do ProxiFyre. Se ele pedir reinicialização, reinicie a VM e clique em Conectar novamente.
-4. Espere o teste automático ou clique em Verificar Global. Um processo independente consulta HTTPS e compara o IP com a saída SOCKS5 esperada.
-5. Feche completamente e reabra o navegador. Conexões existentes precisam ser renovadas.
-6. Desconectar restaura o tráfego direto ao parar o serviço. Fechar PKAproxy mantém o serviço ativo; use Desconectar antes de sair se desejar rede normal.
+O LIT-fix nasceu como um launcher de proxy e está ampliando sua proposta para reunir diagnósticos e correções em um só aplicativo. O objetivo é ajudar a identificar a causa de um problema, explicar a ação sugerida e aplicar correções específicas. Não promete resolver qualquer erro automaticamente.
 
-O PKAproxy permanece em %APPDATA%\PKAproxy. O motor e driver devem ser instalados em diretórios protegidos do Windows; não ficam em AppData. A senha de roteamento fica no app-config.json do motor, com acesso limitado a Administradores e SYSTEM. A sessão do aplicativo e o pedido entre processos usam DPAPI.
+## O que existe hoje
 
-Check proxy confirma apenas uma conexão SOCKS5 explícita. Verificar Global usa PKArouteProbe.exe separado e confirma HTTPS/TCP; não valida todo o tráfego, UDP, DNS, IPv6 ou o jogo. O motor encaminha apenas os protocolos configurados e identificados. UDP exige suporte da proxy; fragmentos UDP IPv6 podem passar diretamente. Não há kill switch. A comparação por IP não garante exclusividade se sua rede direta e sua proxy tiverem a mesma saída.
+A versão de teste atual inclui:
 
-Testes de configuração, SOCKS5, assinatura de atualização, instalação extraída e consulta independente foram feitos. Não instalamos o driver nem testamos roteamento real neste computador: o usuário pediu somente preparar para a VM. Esta versão precisa de validação na VM antes de declarar o Global operacional ali.
+- Interface com Dashboard, Aplicativos e Teste.
+- Cadastro de executáveis e conexão por proxy SOCKS5, com modo global ou por aplicativo.
+- Testes de conectividade, autenticação e IP público de saída, com diagnóstico e logs.
+- Instalador Windows, atalhos e desinstalação.
+- Atualização automática com validação de assinatura nas versões 2.0.3 e posteriores, incluindo versões de teste publicadas.
+- Proteção das credenciais com DPAPI e assinatura RSA dos arquivos publicados.
 
-Fontes oficiais: https://github.com/wiresock/proxifyre/releases/tag/v2.6.1 e https://github.com/wiresock/proxifyre/blob/main/docs/configuration.md
+Os recursos gerais de correção do Windows e de outros aplicativos ainda serão desenvolvidos. A mudança de proposta não significa que eles já estejam disponíveis.
+
+## Baixar e instalar
+
+Baixe o instalador na página de [versões publicadas](https://github.com/Lushen16/LIT-fix/releases). As versões atuais são de teste para Windows 10/11 x64 com .NET Framework 4.7.2 ou superior.
+
+Antes de substituir uma instalação com proxy ativo, pare o túnel, clique em **Liberar rede direta** e feche o aplicativo. Versões anteriores à 2.0.3 precisam de uma instalação manual para receber a correção do atualizador.
+
+## Estado do projeto
+
+O módulo de proxy ainda exige validação de roteamento e proteção de rede em uma máquina virtual. O erro 12007 relatado no Shiba Launcher ainda não está confirmado como resolvido.
+
+O módulo atual encaminha TCP/IPv4; UDP e IPv6 dos aplicativos protegidos são bloqueados. Parar ou fechar o aplicativo mantém o bloqueio de saída direta. Para retornar à conexão normal, use **Liberar rede direta** ou o procedimento de recuperação documentado.
+
+A assinatura RSA detecta adulteração dos arquivos, mas não substitui um certificado Authenticode reconhecido pelo Windows. O instalador pode aparecer como editor desconhecido.
+
+## Desenvolvimento
+
+O código da versão atual está na branch [codex/pka-launcher-v2](https://github.com/Lushen16/LIT-fix/tree/codex/pka-launcher-v2), na pasta `launcher-v2`. O código legado da raiz corresponde à implementação anterior.
+
+Consulte a [documentação do módulo atual](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/LEIA-ME.md), as [orientações de segurança](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/SEGURANCA.md) e os [testes de rede pendentes](https://github.com/Lushen16/LIT-fix/blob/codex/pka-launcher-v2/launcher-v2/VALIDACAO-VM.md).
+
+Não adicione credenciais de proxy, chaves privadas ou certificados de assinatura ao repositório.

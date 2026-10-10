@@ -1,0 +1,9 @@
+PKA Proxy Launcher 2.0.1 — versão de teste
+
+Windows 10/11 x64 e .NET Framework 4.7.2 ou superior.
+Instalação para o usuário atual. A ativação do proxy pede permissão de administrador.
+O motor de rede está incluído. A instalação não ativa o proxy nem altera filtros de rede.
+Feche o PKA antes de instalar ou reinstalar. As configurações são preservadas.
+Antes de desinstalar, pare o proxy e use Liberar rede direta.
+As credenciais e configurações não são apagadas pela desinstalação.
+Assinatura RSA disponível separadamente; sem certificado Authenticode, o Windows pode mostrar editor desconhecido.

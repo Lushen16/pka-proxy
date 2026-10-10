@@ -1,4 +1,4 @@
-# Discord permanente — Litfix 2.0.15.0
+# Discord permanente — Litfix 2.0.16.0
 
 Na aba Discord, informe IPv4, porta, usuário e senha de uma SOCKS5. O Discord.exe é detectado automaticamente; Localizar Discord permite escolher uma instalação diferente. Feche o Discord e desative/libere qualquer túnel geral antes de ativar.
 

@@ -18,6 +18,8 @@ class StartupTests
    using(var form=new MainForm()){
     if(expectFailure)throw new Exception("Baseline unexpectedly opened.");
     var flags=BindingFlags.Instance|BindingFlags.NonPublic;
+    typeof(MainForm).GetField("active",flags).SetValue(form,false);typeof(MainForm).GetField("permanentConfigured",flags).SetValue(form,false);
+    var updateButton=(Button)typeof(MainForm).GetField("updateButton",flags).GetValue(form);var offer=typeof(MainForm).GetMethod("ShowPendingUpdate",flags);offer.Invoke(form,new object[]{new PendingUpdate{Manifest=new UpdateManifest{version="99.0.0.0"}}});if(updateButton.Text!="Atualizar"||!updateButton.Enabled||updateButton.BackColor.R<=updateButton.BackColor.G||updateButton.BackColor.B<=updateButton.BackColor.R)throw new Exception("Update offer/button failed.");typeof(MainForm).GetMethod("SetBusy",flags).Invoke(form,new object[]{true});if(updateButton.Enabled)throw new Exception("Update allowed during busy operation.");typeof(MainForm).GetMethod("SetBusy",flags).Invoke(form,new object[]{false});offer.Invoke(form,new object[]{null});if(updateButton.Enabled||typeof(MainForm).GetField("pendingUpdate",flags).GetValue(form)!=null)throw new Exception("Empty update offer not cleared.");
     var apps=(CheckedListBox)typeof(MainForm).GetField("apps",flags).GetValue(form);
     var launch=(ComboBox)typeof(MainForm).GetField("launch",flags).GetValue(form);
     if(apps.Items.Count!=2||!apps.GetItemChecked(0)||apps.GetItemChecked(1)||launch.Items.Count!=1)throw new Exception("Saved selection changed during startup.");

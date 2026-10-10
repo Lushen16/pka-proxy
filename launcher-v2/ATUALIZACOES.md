@@ -1,3 +1,5 @@
+Desde a 2.0.16, a busca de versões é automática ao abrir e a cada 15 minutos. Uma versão assinada disponível exibe o botão roxo Atualizar ao lado da versão instalada. O download e a instalação iniciam somente após o clique. O botão fica desativado durante operações ou com túnel/modo permanente ativo.
+
 Canal das versões de teste (desde 2.0.3.0): ao abrir, consulta até 100 releases publicadas via API do GitHub, incluindo pré-releases. Ignora drafts e pacotes sem manifesto/assinatura/executável. Escolhe a maior versão numérica; verifica assinatura, correspondência da tag, hash e versão antes de aplicar. Sem rede ou com erro mantém o aplicativo atual. Builds anteriores usam somente /latest e precisam instalar esta correção manualmente uma vez.
 
 # Atualizações automáticas — V2.0.1.0

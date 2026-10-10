@@ -12,7 +12,7 @@ public class MainForm:Form
  TextBox discordHost=new TextBox(),discordUser=new TextBox(),discordPassword=new TextBox(),discordPath=new TextBox();NumericUpDown discordPort=new NumericUpDown();Label discordState=new Label();Button discordEnable,discordRemove,discordTest,discordBrowse;bool permanentConfigured;
  ProxyPicker generalPicker,discordPicker;System.Collections.Generic.List<ProxyPreset> presets=new System.Collections.Generic.List<ProxyPreset>();ProxyPreset generalManual,discordManual;bool loadingPickers=true,generalWasAutomatic,discordWasAutomatic;
  Panel discordPage=new Panel(),dashboard=new Panel(),applicationPage=new Panel(),testPage=new Panel(),content=new Panel();
- Label state=new Label(),testState=new Label(),exitIp=new Label(),updateState=new Label();Button connect,stop,release,test;
+ Label state=new Label(),testState=new Label(),exitIp=new Label(),updateState=new Label();Button connect,stop,release,test,updateButton;PendingUpdate pendingUpdate;bool checkingUpdate;DateTime lastUpdateCheck=DateTime.MinValue;
  RoutingOptions route=new RoutingOptions();bool busy,active,preview,healthy=true,checkingHealth,refreshingApps;int sessionVersion;DateTime lastHealth=DateTime.UtcNow;Timer monitor=new Timer();
  public MainForm()
  {
@@ -24,31 +24,36 @@ public class MainForm:Form
   string[] names={"Dashboard","Discord","Aplicativos","Teste"};Panel[] pages={dashboard,discordPage,applicationPage,testPage};
   for(int i=0;i<4;i++){Panel page=pages[i];var b=Button(names[i],20,153+i*56,165,false);b.Click+=(s,e)=>ShowPage(page);sidebar.Controls.Add(b);}
   updateState=Label("Atualização automática\nLushen16/LIT-fix",24,410,165,100,9,light);sidebar.Controls.Add(updateState);
-  sidebar.Controls.Add(Label("V"+UpdateService.Current+"  •  WINDOWS x64\nSOCKS5 / HTTPS\n\nTCP / UDP via SOCKS5\nIPv6 bloqueado",24,544,165,130,9,muted));
+  sidebar.Controls.Add(Label("V"+UpdateService.Current,24,544,87,30,9,muted));updateButton=Button("Atualizar",113,540,80,true);updateButton.Height=32;updateButton.Font=new Font(UiFont(),9,FontStyle.Bold);updateButton.BackColor=Color.FromArgb(127,65,211);updateButton.FlatAppearance.BorderColor=Color.FromArgb(168,108,244);updateButton.Visible=false;updateButton.Click+=async(s,e)=>await InstallPendingUpdate();sidebar.Controls.Add(updateButton);sidebar.Controls.Add(Label("WINDOWS x64\nSOCKS5 / HTTPS\n\nTCP / UDP via SOCKS5\nIPv6 bloqueado",24,583,165,110,9,muted));
   content.SetBounds(225,20,835,720);content.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right;Controls.Add(content);
   foreach(Panel page in pages){page.Dock=DockStyle.Fill;page.AutoScroll=true;page.BackColor=bg;content.Controls.Add(page);}
   BuildDashboard();BuildApps();BuildTests();BuildDiscord();ApplyReadableColors(this);ShowPage(dashboard);host.TextChanged+=(s,e)=>InvalidateResults();port.ValueChanged+=(s,e)=>InvalidateResults();user.TextChanged+=(s,e)=>InvalidateResults();password.TextChanged+=(s,e)=>InvalidateResults();
   if(!preview){var dp=DiscordProxy.Load();discordHost.Text=dp.Host;discordPort.Value=dp.Port>0&&dp.Port<=65535?dp.Port:1080;discordUser.Text=dp.User;discordPassword.Text=dp.Password;discordPath.Text=dp.DiscordPath;if(!File.Exists(discordPath.Text)){var found=AppDiscovery.Find(true);if(found.Length>0)discordPath.Text=found[0];}permanentConfigured=DiscordProxy.HasConfiguration;var saved=SessionStore.Load();if(saved!=null){proxyTls.Checked=saved.ProxyTls??true;tlsName.Text=saved.TlsName??"";socks.Checked=saved.Protocol!="HTTPS";https.Checked=saved.Protocol=="HTTPS"||saved.Protocol=="BOTH";host.Text=saved.Host??"";port.Value=saved.Port>0&&saved.Port<=65535?saved.Port:1080;user.Text=saved.User??"";password.Text=saved.Password();route=saved.Route??new RoutingOptions();route.Ipv6=false;udp.Checked=route.Udp;if(route.Apps==null)route.Apps=new System.Collections.Generic.List<RegisteredApp>();if(route.Apps.Count==0&&!String.IsNullOrWhiteSpace(saved.Game)&&File.Exists(saved.Game))route.Apps.Add(new RegisteredApp{Path=saved.Game});}global.Checked=route.Global;auto.Checked=route.AutoLaunch;RefreshApps();}
   LoadPickers();
-  monitor.Interval=4000;monitor.Tick+=async(s,e)=>{if(!busy){RefreshState();if(active&&!checkingHealth&&(DateTime.UtcNow-lastHealth).TotalSeconds>=30)await CheckHealth();}};if(!preview)monitor.Start();
+  monitor.Interval=4000;monitor.Tick+=async(s,e)=>{if(!busy){RefreshState();if(!checkingUpdate&&(DateTime.UtcNow-lastUpdateCheck).TotalMinutes>=15)await AutoUpdateAsync();if(active&&!checkingHealth&&(DateTime.UtcNow-lastHealth).TotalSeconds>=30)await CheckHealth();}};if(!preview)monitor.Start();
   FormClosing+=(s,e)=>{if(busy){e.Cancel=true;return;}if(!preview)Save();};FormClosed+=(s,e)=>monitor.Dispose();RefreshState();
   if(!preview)Shown+=async(s,e)=>await AutoUpdateAsync();
  }
  async Task AutoUpdateAsync()
  {
-  if(Array.IndexOf(Environment.GetCommandLineArgs(),"--update-failed")>=0){updateState.Text="Atualização não concluída\nVersão anterior restaurada.";return;}
-  if(active||permanentConfigured){updateState.Text="Atualização adiada\nHá um motor ativo.";Log("Atualização será verificada na próxima abertura sem túnel ativo.");return;}
-  SetBusy(true);updateState.Text="Buscando atualização…";
-  try{
-   var update=await Task.Run(()=>UpdateService.Check("Lushen16/LIT-fix"));
-   if(update==null){updateState.Text="Versão atualizada\nV"+UpdateService.Current;return;}
-   updateState.Text="Baixando V"+update.Manifest.version+"…";Log("Nova versão assinada: "+update.Manifest.version);
-   await Task.Run(()=>UpdateService.Fetch(update));
-   if(EngineController.Status().StartsWith("Motor ativo")){updateState.Text="Atualização adiada\nHá um motor ativo.";return;}
-   updateState.Text="Instalando atualização…";Save();
-   await Task.Run(()=>UpdateInstaller.Start(update));
-   SetBusy(false);Application.Exit();
-  }catch(Exception){updateState.Text="Atualização indisponível\nVersão instalada mantida.";Log("Não foi possível atualizar. A versão instalada foi preservada; nova tentativa na próxima abertura.");}
+  if(checkingUpdate)return;checkingUpdate=true;lastUpdateCheck=DateTime.UtcNow;
+  if(Array.IndexOf(Environment.GetCommandLineArgs(),"--update-failed")>=0)updateState.Text="Atualização não concluída\nVersão anterior restaurada.";
+  try{var update=await Task.Run(()=>UpdateService.Check("Lushen16/LIT-fix"));if(IsDisposed)return;ShowPendingUpdate(update);}
+  catch(Exception){if(!IsDisposed)updateState.Text=pendingUpdate!=null?"Nova versão disponível\nV"+pendingUpdate.Manifest.version:"Atualização indisponível\nTente na próxima abertura.";}
+  finally{checkingUpdate=false;}
+ }
+ void ShowPendingUpdate(PendingUpdate update)
+ {
+  pendingUpdate=update;updateButton.Visible=update!=null;updateButton.Enabled=update!=null&&!busy&&!active&&!permanentConfigured;
+  updateState.Text=update==null?"Versão atualizada\nV"+UpdateService.Current:"Nova versão disponível\nV"+update.Manifest.version;
+ }
+ async Task InstallPendingUpdate()
+ {
+  if(busy||pendingUpdate==null)return;
+  if(active||permanentConfigured||EngineController.Status().StartsWith("Motor ativo")){updateState.Text="Pare o motor antes\nde atualizar.";return;}
+  SetBusy(true);var update=pendingUpdate;
+  try{updateState.Text="Baixando V"+update.Manifest.version+"…";await Task.Run(()=>UpdateService.Fetch(update));if(EngineController.Status().StartsWith("Motor ativo")||DiscordProxy.HasConfiguration)throw new InvalidOperationException("Pare o motor antes de atualizar.");updateState.Text="Instalando atualização…";Save();await Task.Run(()=>UpdateInstaller.Start(update));SetBusy(false);Application.Exit();}
+  catch(Exception ex){updateState.Text="Atualização não concluída\nClique para tentar de novo.";Error(ex);}
   finally{if(!IsDisposed)SetBusy(false);}
  }
  void BuildDashboard()
@@ -240,7 +245,7 @@ public class MainForm:Form
  async Task TestTunnel(){if(busy)return;SetBusy(true);try{if(!active)throw new InvalidOperationException("Ative o túnel primeiro.");string ip=await Task.Run(()=>EngineController.RoutedIp());healthy=true;tunnelIp=ip;RefreshAppResults();testState.Text="IP do túnel verificado para a rota selecionada";exitIp.Text="IP público pelo túnel: "+ip;Log(testState.Text+" / "+ip);}catch(Exception ex){healthy=false;tunnelIp="";RefreshAppResults();testState.Text="Túnel não confirmado";exitIp.Text="IP público pelo túnel: indisponível";Error(ex);}finally{SetBusy(false);}}
  async Task CheckHealth(){checkingHealth=true;lastHealth=DateTime.UtcNow;int version=sessionVersion;bool ok=false;try{await Task.Run(()=>EngineController.RoutedIp());ok=true;}catch{}finally{checkingHealth=false;}if(!IsDisposed&&active&&version==sessionVersion){if(healthy!=ok)Log(ok?"Conectividade do processo protegido restabelecida.":"Erro de conectividade do processo protegido. Sem fallback direto.");healthy=ok;RefreshState();}}
  void EnsureAppsClosed(string[] paths){foreach(string path in paths)foreach(Process p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(path))){using(p){try{if(String.Equals(p.MainModule.FileName,path,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("Feche "+Path.GetFileName(path)+" antes de ativar.");}catch(System.ComponentModel.Win32Exception){throw new InvalidOperationException("Não foi possível verificar um processo aberto. Feche "+Path.GetFileName(path)+" antes de ativar.");}}}}
- void SetBusy(bool value){busy=value;connect.Enabled=stop.Enabled=release.Enabled=!value&&!permanentConfigured;test.Enabled=!value;discordEnable.Enabled=!value&&!permanentConfigured;discordRemove.Enabled=!value&&permanentConfigured;discordTest.Enabled=!value;discordHost.Enabled=discordUser.Enabled=discordPassword.Enabled=discordPath.Enabled=discordPort.Enabled=discordBrowse.Enabled=!value&&!permanentConfigured;proxyTls.Enabled=tlsName.Enabled=socks.Enabled=https.Enabled=udp.Enabled=global.Enabled=auto.Enabled=host.Enabled=port.Enabled=user.Enabled=password.Enabled=launch.Enabled=!value&&!active;applicationPage.Enabled=!value;apps.Enabled=!value&&!active;foreach(Control c in applicationPage.Controls)if(c is Button&&c.Text!="Abrir pelo túnel")c.Enabled=!value&&!active;SetProxyEditing();}
+ void SetBusy(bool value){busy=value;updateButton.Enabled=pendingUpdate!=null&&!value&&!active&&!permanentConfigured;connect.Enabled=stop.Enabled=release.Enabled=!value&&!permanentConfigured;test.Enabled=!value;discordEnable.Enabled=!value&&!permanentConfigured;discordRemove.Enabled=!value&&permanentConfigured;discordTest.Enabled=!value;discordHost.Enabled=discordUser.Enabled=discordPassword.Enabled=discordPath.Enabled=discordPort.Enabled=discordBrowse.Enabled=!value&&!permanentConfigured;proxyTls.Enabled=tlsName.Enabled=socks.Enabled=https.Enabled=udp.Enabled=global.Enabled=auto.Enabled=host.Enabled=port.Enabled=user.Enabled=password.Enabled=launch.Enabled=!value&&!active;applicationPage.Enabled=!value;apps.Enabled=!value&&!active;foreach(Control c in applicationPage.Controls)if(c is Button&&c.Text!="Abrir pelo túnel")c.Enabled=!value&&!active;SetProxyEditing();}
  void RefreshState(){bool wasActive=active;active=!preview&&EngineController.Status().StartsWith("Motor ativo");bool? guarded=preview?(bool?)false:NetworkGuard.ArmedState;state.Text=active?(healthy?"Conectado • TCP / IPv4 • monitoramento HTTPS ativo":"Erro de conectividade • motor ativo • saída direta bloqueada"):!guarded.HasValue?"Proteção não consultada • ativação exigirá administrador":guarded.Value?"Túnel parado • saída direta bloqueada":"Desconectado • rede direta liberada";if(active&&EngineController.Mode()=="DISCORD")state.Text="Discord • proxy permanente ativa em segundo plano";discordState.Text=permanentConfigured?(active?"Proxy permanente configurada • motor ativo":"Proxy permanente configurada • aguardando reconexão"):"Sem proxy permanente";if(wasActive&&!active){tunnelIp="";RefreshAppResults();}if(wasActive&&!active)Log("Motor desconectado. A proteção persistente permanece ativa.");SetBusy(busy);}
  void RefreshApps(){refreshingApps=true;try{tunnelIp="";RefreshAppResults();apps.Items.Clear();foreach(var a in route.Apps)apps.Items.Add(a,a.Selected);}finally{refreshingApps=false;}RefreshLaunch();}
  void RefreshLaunch(){string previous=launch.SelectedItem==null?null:((RegisteredApp)launch.SelectedItem).Path;launch.Items.Clear();foreach(var a in route.Apps)if(a.Selected)launch.Items.Add(a);for(int i=0;i<launch.Items.Count;i++)if(((RegisteredApp)launch.Items[i]).Path==previous)launch.SelectedIndex=i;if(launch.SelectedIndex<0&&launch.Items.Count>0)launch.SelectedIndex=0;}
@@ -248,7 +253,7 @@ public class MainForm:Form
  void Error(Exception ex){string text=ex is AggregateException?"Falha de conexão TCP com o proxy.":ex.Message;Log("ERRO: "+text);MessageBox.Show(this,text,"Litfix",MessageBoxButtons.OK,MessageBoxIcon.Error);}
  void Log(string value){if(discordUser.Text.Length>0)value=value.Replace(discordUser.Text,"[usuario-discord]");if(discordPassword.Text.Length>0)value=value.Replace(discordPassword.Text,"[senha-discord]");if(user.Text.Length>0)value=value.Replace(user.Text,"[usuario]");if(password.Text.Length>0)value=value.Replace(password.Text,"[senha]");if(logs.TextLength>24000)logs.Clear();logs.AppendText(DateTime.Now.ToString("HH:mm:ss")+"  "+value+Environment.NewLine);}
  void ShowPage(Panel page){foreach(Control child in content.Controls)child.Visible=child==page;page.BringToFront();}
- public void PreviewPage(string name){if(name=="tests"){route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\Discord.exe"});route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\PokeAlliance.exe"});RefreshAppResults();}ShowPage(name=="discord"?discordPage:name=="apps"?applicationPage:name=="tests"?testPage:dashboard);}
+ public void PreviewPage(string name){if(name=="update")ShowPendingUpdate(new PendingUpdate{Manifest=new UpdateManifest{version="2.0.17.0"}});if(name=="tests"){route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\Discord.exe"});route.Apps.Add(new RegisteredApp{Path=@"C:\Apps\PokeAlliance.exe"});RefreshAppResults();}ShowPage(name=="discord"?discordPage:name=="apps"?applicationPage:name=="tests"?testPage:dashboard);}
  static string UiFont(){foreach(var f in FontFamily.Families)if(f.Name=="Segoe UI Variable Text")return f.Name;foreach(var f in FontFamily.Families)if(f.Name=="Bahnschrift")return f.Name;return "Segoe UI";}
  Label Label(string t,int x,int y,int w,int h,int size,Color color){return new Label{Text=t,Left=x,Top=y,Width=w,Height=h,ForeColor=color,Font=new Font(UiFont(),size)};}
  Panel Card(int x,int y,int w,int h,params Control[] children){var p=new Panel{Left=x,Top=y,Width=w,Height=h,BackColor=card};p.Controls.AddRange(children);return p;}

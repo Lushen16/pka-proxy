@@ -1,0 +1,8 @@
+*.exe
+*.bin
+*.log
+active.json
+session*.json
+session*.bin
+engine-*
+*.ready

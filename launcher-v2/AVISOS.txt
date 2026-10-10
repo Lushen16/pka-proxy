@@ -1,0 +1,10 @@
+PKA Proxy Launcher V2.0 — candidato para validação
+
+Controlador C# com motor sing-box 1.14.2 (GPLv3 ou posterior), sem modificar o núcleo reaproveitado do pacote anterior. Wintun 0.14.1 é incorporado no motor; consulte suas licenças. Não há vínculo com SagerNet, WireGuard ou Webshare.
+
+Fontes correspondentes: upstream/sing-box-v1.14.2-source.zip.
+https://github.com/SagerNet/sing-box/tree/v1.14.2
+https://github.com/SagerNet/sing-tun/tree/ddaa4ca25e3b
+https://www.wintun.net/
+
+Não há assinatura Authenticode. A proteção de rede ainda requer validação em VM; leia LEIA-ME.md e VALIDACAO-VM.md. Parar/fechar mantém o bloqueio persistente; use Liberar rede direta ou Recuperar-rede.cmd para restaurar rede normal.

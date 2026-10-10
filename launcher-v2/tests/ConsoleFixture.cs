@@ -1,0 +1,2 @@
+using System;using System.Runtime.InteropServices;using System.Threading;
+class Fixture{[DllImport("kernel32.dll")]static extern IntPtr GetConsoleWindow();[DllImport("user32.dll")]static extern bool IsWindowVisible(IntPtr h);static void Main(){Console.CancelKeyPress+=(s,e)=>{e.Cancel=true;Environment.Exit(0);};Console.WriteLine(GetConsoleWindow()!=IntPtr.Zero&&!IsWindowVisible(GetConsoleWindow())?"HIDDEN":"VISIBLE_OR_MISSING");Thread.Sleep(30000);}}

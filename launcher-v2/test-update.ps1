@@ -35,5 +35,5 @@ $timer=[Diagnostics.Stopwatch]::StartNew()
 while(!(Test-Path -LiteralPath (Join-Path $WorkDirectory 'updated-ok')) -and $timer.ElapsedMilliseconds -lt 15000){Start-Sleep -Milliseconds 100}
 if(!(Test-Path -LiteralPath (Join-Path $WorkDirectory 'updated-ok'))){throw 'Updated executable did not restart'}
 if([Reflection.AssemblyName]::GetAssemblyName($parent).Version.ToString() -ne '2.0.2.0'){throw 'Target version mismatch'}
-if(!(Get-ChildItem -LiteralPath $WorkDirectory -Filter 'PKA-Proxy.exe.backup-*')){throw 'Backup missing'}
+if(Get-ChildItem -LiteralPath $WorkDirectory -Filter 'PKA-Proxy.exe.backup-*'){throw 'Previous launcher not removed after restart'}
 Write-Output 'PASS: end-to-end update with helper readiness, parent exit, signed binary replacement, backup and automatic restart.'

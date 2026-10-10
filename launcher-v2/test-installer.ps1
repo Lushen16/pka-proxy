@@ -5,7 +5,7 @@ $registry='HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\'+$id
 if(Test-Path $registry){throw 'Já existe uma instalação registrada. Use uma VM limpa para este teste.'}
 $destination=[IO.Path]::GetFullPath($TestDirectory)
 if(Test-Path $destination){throw 'O diretório de teste deve ser novo.'}
-$setup=Join-Path $PSScriptRoot 'Litfix-Setup-2.0.6.0.exe'
+$setup=Join-Path $PSScriptRoot 'Litfix-Setup-2.0.7.0.exe'
 $group='PKA Test '+[Guid]::NewGuid().ToString('N')
 $arguments=@('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS=""',('/DIR="'+$destination+'"'),('/GROUP="'+$group+'"'))
 function RunSetup { $p=Start-Process $setup -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru; if($p.ExitCode -ne 0){throw ('Instalação falhou: '+$p.ExitCode)} }

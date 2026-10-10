@@ -63,6 +63,10 @@ public static class UpdateInstaller
                 Process.Start(new ProcessStartInfo(target,"--update-failed"){UseShellExecute=true,WorkingDirectory=Path.GetDirectoryName(target)});
                 throw;
             }
+            // The replacement is already running; keep no second launcher in the install folder.
+            // Cleanup is best effort and never turns a successful restart into a rollback.
+            try {File.Delete(backup);}catch{}
+            try {File.Delete(source);}catch{}
             return 0;
         }
         catch(Exception ex)

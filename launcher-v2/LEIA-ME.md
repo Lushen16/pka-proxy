@@ -1,4 +1,4 @@
-# PKA Proxy Launcher V2.0 — candidato para validação
+# PKA Proxy Launcher V2.0.1 — candidato para validação
 
 Interface Windows em preto, azul e azul-claro, com Dashboard, Aplicativos e Teste. Usa um túnel sing-box real e filtros persistentes da Windows Filtering Platform (WFP). Não usa variáveis de ambiente, proxy WinINET ou uma simulação de interceptação.
 
@@ -33,7 +33,7 @@ Conexões existentes não são migradas. O launcher exige fechar processos selec
 
 O perfil inteiro, incluindo usuário, senha, apps e configurações, usa DPAPI CurrentUser em `%APPDATA%\PKAproxyV2\session-v2.bin`. Não copia automaticamente configurações antigas. Pedidos entre a janela e o helper também usam DPAPI. Senha aparece mascarada na interface e não entra na linha de comando, repositório, pacote ou logs. O arquivo temporário `active.json` precisa conter credenciais enquanto o sing-box roda; fica em `%PROGRAMDATA%\PKAproxyV2\Tun`, acessível somente a Administradores e SYSTEM, e é removido ao encerrar normalmente. Uma queda brusca do helper pode deixar esse arquivo protegido no disco. Administradores, processos da mesma conta e dumps de memória não são isolados por DPAPI.
 
-Logs do motor ficam em `%APPDATA%\PKAproxyV2\tun-diagnostic.log`, com redação de usuário/senha e limite de tamanho. Os eventos da interface são mantidos em memória. Sem exportação automática de diagnósticos ou atualização automática nesta versão.
+Logs do motor ficam em `%APPDATA%\PKAproxyV2\tun-diagnostic.log`, com redação de usuário/senha e limite de tamanho. Os eventos da interface são mantidos em memória. Sem exportação automática de diagnósticos. A verificação de atualização ocorre automaticamente na abertura; consulte ATUALIZACOES.md.
 
 SOCKS5 com usuário/senha não cifra o enlace entre cliente e proxy; HTTPS cifra o conteúdo do destino, não a negociação SOCKS5. Não há fallback HTTP, direto ou para outro servidor.
 
@@ -44,6 +44,7 @@ Em PowerShell, dentro desta pasta:
 ```powershell
 .\build.ps1
 .\test.ps1
+.\test-update.ps1
 ```
 
 O build usa o compilador C# do .NET Framework instalado no Windows e gera aplicação e helper x64. `core.gz` contém o sing-box fixado; sua integridade é conferida antes de execução. O processo de teste é incorporado ao binário. Não há instalador novo nem assinatura Authenticode neste candidato.

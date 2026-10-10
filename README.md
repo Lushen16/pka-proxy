@@ -1,4 +1,6 @@
-# PKA Proxy Launcher V2.0
+# PKA Proxy Launcher V2.0.1
+
+Atualização automática ao abrir: consulta Releases estáveis, valida assinatura RSA e SHA-256, instala com backup e reinicia. Leia [ATUALIZACOES.md](launcher-v2/ATUALIZACOES.md). É necessário instalar o novo executável uma vez para habilitar o mecanismo.
 
 A V2 está em [launcher-v2](launcher-v2/LEIA-ME.md): interface em preto, azul e azul-claro, Dashboard, Aplicativos, Teste, seleção por caminho do executável, SOCKS5 real, abertura automática e filtros persistentes WFP para bloquear saída fora do túnel.
 

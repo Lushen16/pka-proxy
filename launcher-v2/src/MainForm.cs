@@ -10,24 +10,43 @@ public class MainForm:Form
  TextBox host=new TextBox(),user=new TextBox(),password=new TextBox(),logs=new TextBox(); NumericUpDown port=new NumericUpDown();
  CheckBox global=new CheckBox(),auto=new CheckBox();CheckedListBox apps=new CheckedListBox();ComboBox launch=new ComboBox();
  Panel dashboard=new Panel(),applicationPage=new Panel(),testPage=new Panel(),content=new Panel();
- Label state=new Label(),testState=new Label(),exitIp=new Label();Button connect,stop,release,test;
+ Label state=new Label(),testState=new Label(),exitIp=new Label(),updateState=new Label();Button connect,stop,release,test;
  RoutingOptions route=new RoutingOptions();bool busy,active,preview,healthy=true,checkingHealth;int sessionVersion;DateTime lastHealth=DateTime.UtcNow;Timer monitor=new Timer();
  public MainForm()
  {
   preview=Array.IndexOf(Environment.GetCommandLineArgs(),"--preview")>=0;
-  Text="PKA Proxy Launcher V2.0";ClientSize=new Size(1080,760);MinimumSize=new Size(1096,799);StartPosition=FormStartPosition.CenterScreen;
+  Text="PKA Proxy Launcher "+UpdateService.Current;ClientSize=new Size(1080,760);MinimumSize=new Size(1096,799);StartPosition=FormStartPosition.CenterScreen;
   BackColor=bg;ForeColor=Color.White;Font=new Font("Segoe UI",10);AutoScaleMode=AutoScaleMode.Dpi;
   var sidebar=new Panel{Dock=DockStyle.Left,Width=205,BackColor=card};Controls.Add(sidebar);
   sidebar.Controls.Add(Label("PKA",24,28,155,48,30,light));sidebar.Controls.Add(Label("PROXY LAUNCHER",25,82,165,25,10,Color.White));
   string[] names={"Dashboard","Aplicativos","Teste"};Panel[] pages={dashboard,applicationPage,testPage};
   for(int i=0;i<3;i++){Panel page=pages[i];var b=Button(names[i],20,153+i*56,165,false);b.Click+=(s,e)=>ShowPage(page);sidebar.Controls.Add(b);}
-  sidebar.Controls.Add(Label("V2.0  •  WINDOWS x64\nSOCKS5 / WEBSHARE\n\nTCP protegido\nUDP e IPv6 bloqueados",24,544,165,130,9,muted));
+  updateState=Label("Atualização automática\nLushen16/pka-proxy",24,370,165,115,9,light);sidebar.Controls.Add(updateState);
+  sidebar.Controls.Add(Label("V"+UpdateService.Current+"  •  WINDOWS x64\nSOCKS5 / WEBSHARE\n\nTCP protegido\nUDP e IPv6 bloqueados",24,544,165,130,9,muted));
   content.SetBounds(225,20,835,720);content.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right;Controls.Add(content);
   foreach(Panel page in pages){page.Dock=DockStyle.Fill;page.AutoScroll=true;page.BackColor=bg;content.Controls.Add(page);}
   BuildDashboard();BuildApps();BuildTests();ShowPage(dashboard);
   if(!preview){var saved=SessionStore.Load();if(saved!=null){host.Text=saved.Host??"";port.Value=saved.Port>0&&saved.Port<=65535?saved.Port:1080;user.Text=saved.User??"";password.Text=saved.Password();route=saved.Route??new RoutingOptions();route.Udp=route.Ipv6=false;if(route.Apps==null)route.Apps=new System.Collections.Generic.List<RegisteredApp>();if(route.Apps.Count==0&&!String.IsNullOrWhiteSpace(saved.Game)&&File.Exists(saved.Game))route.Apps.Add(new RegisteredApp{Path=saved.Game});}global.Checked=route.Global;auto.Checked=route.AutoLaunch;RefreshApps();}
   monitor.Interval=4000;monitor.Tick+=async(s,e)=>{if(!busy){RefreshState();if(active&&!checkingHealth&&(DateTime.UtcNow-lastHealth).TotalSeconds>=30)await CheckHealth();}};if(!preview)monitor.Start();
   FormClosing+=(s,e)=>{if(busy){e.Cancel=true;return;}if(!preview)Save();};FormClosed+=(s,e)=>monitor.Dispose();RefreshState();
+  if(!preview)Shown+=async(s,e)=>await AutoUpdateAsync();
+ }
+ async Task AutoUpdateAsync()
+ {
+  if(Array.IndexOf(Environment.GetCommandLineArgs(),"--update-failed")>=0){updateState.Text="Atualização não concluída\nVersão anterior restaurada.";return;}
+  if(active){updateState.Text="Atualização adiada\nHá um motor ativo.";Log("Atualização será verificada na próxima abertura sem túnel ativo.");return;}
+  SetBusy(true);updateState.Text="Buscando atualização…";
+  try{
+   var update=await Task.Run(()=>UpdateService.Check("Lushen16/pka-proxy"));
+   if(update==null){updateState.Text="Versão atualizada\nV"+UpdateService.Current;return;}
+   updateState.Text="Baixando V"+update.Manifest.version+"…";Log("Nova versão assinada: "+update.Manifest.version);
+   await Task.Run(()=>UpdateService.Fetch(update));
+   if(EngineController.Status().StartsWith("Motor ativo")){updateState.Text="Atualização adiada\nHá um motor ativo.";return;}
+   updateState.Text="Instalando atualização…";Save();
+   await Task.Run(()=>UpdateInstaller.Start(update));
+   SetBusy(false);Application.Exit();
+  }catch(Exception){updateState.Text="Atualização indisponível\nVersão instalada mantida.";Log("Não foi possível atualizar. A versão instalada foi preservada; nova tentativa na próxima abertura.");}
+  finally{if(!IsDisposed)SetBusy(false);}
  }
  void BuildDashboard()
  {

@@ -1,4 +1,4 @@
-PKA Proxy Launcher V2.0 — candidato para validação
+PKA Proxy Launcher V2.0.1 — candidato para validação
 
 Controlador C# com motor sing-box 1.14.2 (GPLv3 ou posterior), sem modificar o núcleo reaproveitado do pacote anterior. Wintun 0.14.1 é incorporado no motor; consulte suas licenças. Não há vínculo com SagerNet, WireGuard ou Webshare.
 

@@ -14,3 +14,5 @@ Não executados: validação administrativa do WFP, queda do motor, captura de t
 
 GitHub: https://github.com/Lushen16/pka-proxy/pull/1 (rascunho).
 Branch: codex/pka-launcher-v2. Commit inicial: 03bc363.
+
+Atualização V2.0.1.0: 13 verificações do updater e teste completo de troca/reinício aprovados; manifesto real assinado e executável validados; consulta real ao latest do GitHub aprovada (v1.2.0.0, anterior à versão instalada).
